@@ -6,15 +6,19 @@ import {
   Divider,
   Heading,
   Badge,
+  Button,
   Accordion,
   AccordionItem,
   AccordionButton,
   AccordionIcon,
   AccordionPanel,
+  useDisclosure,
 } from '@chakra-ui/react'
 import _groupBy from 'lodash/groupBy'
+import AddPermissionModal from './AddPermissionModal'
 
 export function App() {
+  const { isOpen, onClose, onOpen } = useDisclosure()
   const [raw, setRaw] = useState<any>()
   const [selectedRole, setSelectedRole] = useState<string | undefined>(
     'super_user'
@@ -28,54 +32,72 @@ export function App() {
     })
   }, [])
 
-  console.log(raw)
-
   return (
-    <Box h="100vh">
-      <Stack flexDir="row" h="100%">
-        <Stack
-          spacing={0}
-          divider={<Divider borderColor="gray.600" />}
-          bg="gray.800"
-          h="100%"
-        >
-          {Array.from(raw?.AVAILABLE_ROLES ?? [])?.map((role: any) => (
-            <Box
-              onClick={() => {
-                setSelectedRole(role)
-              }}
-              cursor="pointer"
-              borderLeftWidth="4px"
-              borderStyle="solid"
-              borderLeftColor={
-                selectedRole === role ? 'gray.100' : 'transparent'
-              }
-              color={selectedRole === role ? 'white' : 'whiteAlpha.500'}
-              fontWeight="bold"
-              _hover={{
-                color: 'white',
-                borderLeftColor: 'gray.100',
-              }}
-              key={role}
-              px="4"
-              py="2"
-            >
-              <Text>{role}</Text>
-            </Box>
-          ))}
-        </Stack>
-        <Box flex={1}>
-          <Stack h="100%">
-            <Heading px="4" mb="1">
-              {selectedRole}
-            </Heading>
-            <Box flex={1} overflowY="scroll">
-              <TableList rolesMap={raw?.rolesMap} selectedRole={selectedRole} />
-            </Box>
+    <>
+      <AddPermissionModal
+        selectedRole={selectedRole}
+        raw={raw}
+        isOpen={isOpen}
+        onClose={onClose}
+      />
+      <Box h="100vh">
+        <Stack flexDir="row" h="100%">
+          <Stack
+            spacing={0}
+            divider={<Divider borderColor="gray.600" />}
+            bg="gray.800"
+            h="100%"
+          >
+            {Array.from(raw?.AVAILABLE_ROLES ?? [])?.map((role: any) => (
+              <Box
+                onClick={() => {
+                  setSelectedRole(role)
+                }}
+                cursor="pointer"
+                borderLeftWidth="4px"
+                borderStyle="solid"
+                borderLeftColor={
+                  selectedRole === role ? 'gray.100' : 'transparent'
+                }
+                color={selectedRole === role ? 'white' : 'whiteAlpha.500'}
+                fontWeight="bold"
+                _hover={{
+                  color: 'white',
+                  borderLeftColor: 'gray.100',
+                }}
+                key={role}
+                px="4"
+                py="2"
+              >
+                <Text>{role}</Text>
+              </Box>
+            ))}
           </Stack>
-        </Box>
-      </Stack>
-    </Box>
+          <Box flex={1}>
+            <Stack h="100%">
+              <Stack
+                px="4"
+                mb="1"
+                flexDir="row"
+                justify="space-between"
+                align="center"
+              >
+                <Heading size="md">{selectedRole}</Heading>
+                <Button colorScheme="blue" onClick={onOpen}>
+                  Add Permission
+                </Button>
+              </Stack>
+              <Box flex={1} overflowY="scroll">
+                <TableList
+                  rolesMap={raw?.rolesMap}
+                  selectedRole={selectedRole}
+                />
+              </Box>
+            </Stack>
+          </Box>
+        </Stack>
+      </Box>
+    </>
   )
 }
 
@@ -89,13 +111,9 @@ const TableList = (props: { rolesMap?: any[]; selectedRole?: string }) => {
     return _groupBy(selectedData?.tables ?? [], val => val.schema)
   }, [selectedData])
 
-  console.log(groupedData)
-
   if (!selectedData) {
     return <Text>Select Role to view</Text>
   }
-
-  console.log(selectedData)
 
   return (
     <Box px="4" pb="6">

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { getRawData } from './service'
+import { getRawData, addTableToPermission } from './service'
 
 let mainWindow: BrowserWindow | null
 
@@ -37,6 +37,12 @@ async function registerListeners() {
   ipcMain.on('fetch-raw', event => {
     getRawData().then(raw => {
       event.reply('fetch-raw-resolved', raw)
+    })
+  })
+
+  ipcMain.on('save-permission', (event, payload) => {
+    addTableToPermission(payload).then(response => {
+      event.reply('save-permission-resolved', response)
     })
   })
 }

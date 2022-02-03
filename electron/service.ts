@@ -16,7 +16,7 @@ export const getFiles = (): Promise<string[]> => {
         return reject(err)
       }
 
-      return resolve(files)
+      return resolve(files?.filter(n => n !== 'tables.yaml'))
     })
   })
 }
