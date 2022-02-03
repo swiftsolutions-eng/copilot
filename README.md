@@ -1,35 +1,9 @@
-## Electron + TypeScript + React
+## Copilot
 
-Boilerplate for a project using Electron, React and Typescript.
+App for managing hasura permission based on yaml file
 
-## Installation
+### Screenshots
 
-Use a package manager of your choice (npm, yarn, etc.) in order to install all dependencies
+<img width="800" alt="Screen Shot 2022-02-03 at 08 11 37" src="https://user-images.githubusercontent.com/10051243/152264666-fae9fc60-6492-421d-8914-f738e7f2525f.png">
 
-```bash
-yarn
-```
-
-## Usage
-
-Just run `start` script.
-
-```bash
-yarn start
-```
-
-## Packaging
-
-To generate the project package based on the OS you're running on, just run:
-
-```bash
-yarn package
-```
-
-## Contributing
-
-Pull requests are always welcome 😃.
-
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
+<img width="800" alt="Screen Shot 2022-02-03 at 08 11 59" src="https://user-images.githubusercontent.com/10051243/152264668-223caaa6-ef5a-420d-bbb0-4eb3709e1828.png">
