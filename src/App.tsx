@@ -19,18 +19,45 @@ import AddPermissionModal from './AddPermissionModal'
 
 export function App() {
   const { isOpen, onClose, onOpen } = useDisclosure()
+  const [isAppReady, setReady] = useState(false)
   const [raw, setRaw] = useState<any>()
   const [selectedRole, setSelectedRole] = useState<string | undefined>(
     'super_user'
   )
 
   useEffect(() => {
-    window.Main.sendMessage('fetch-raw')
-
-    window.Main.on('fetch-raw-resolved', (data: any) => {
-      setRaw(data)
-    })
+    window.Main.on('is-ready', setReady)
   }, [])
+
+  useEffect(() => {
+    if (isAppReady) {
+      window.Main.sendMessage('fetch-raw')
+
+      window.Main.on('fetch-raw-resolved', (data: any) => {
+        setRaw(data)
+      })
+    }
+  }, [isAppReady])
+
+  if (!isAppReady) {
+    return (
+      <Box position="relative" h="100vh" w="100vw">
+        <Button
+          position="absolute"
+          top="50%"
+          left="50%"
+          transform="translate(-50%, -50%)"
+          colorScheme="pink"
+          size="lg"
+          onClick={() => {
+            window.Main.sendMessage('choose-source')
+          }}
+        >
+          Browse Metadata Source
+        </Button>
+      </Box>
+    )
+  }
 
   return (
     <>

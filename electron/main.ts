@@ -1,5 +1,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { getRawData, addTableToPermission } from './service'
+import {
+  getRawData,
+  addTableToPermission,
+  isReady,
+  chooseSource,
+} from './service'
 
 let mainWindow: BrowserWindow | null
 
@@ -32,6 +37,14 @@ async function registerListeners() {
    */
   ipcMain.on('message', (_, message) => {
     console.log(message)
+  })
+
+  ipcMain.on('choose-source', event => {
+    chooseSource()
+      .then()
+      .finally(() => {
+        event.reply('is-ready', isReady())
+      })
   })
 
   ipcMain.on('fetch-raw', event => {

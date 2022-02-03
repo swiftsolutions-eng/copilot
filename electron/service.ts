@@ -3,11 +3,29 @@ import fsp from 'fs/promises'
 import path from 'path'
 import yamljs from 'yamljs'
 import prettier from 'prettier'
+import { dialog } from 'electron'
 
-const SOURCE_FOLDER =
-  '/Users/adeyahya/dev/warmindo/hasura/metadata/databases/default/tables'
+let SOURCE_FOLDER = ''
 
 const AVAILABLE_ROLES = new Set()
+
+export const isReady = () => !!SOURCE_FOLDER
+
+export const chooseSource = async () => {
+  try {
+    const location = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+    })
+
+    if (location) {
+      SOURCE_FOLDER = location.filePaths[0]
+    }
+
+    return true
+  } catch (error) {
+    return false
+  }
+}
 
 export const getFiles = (): Promise<string[]> => {
   return new Promise((resolve, reject) => {
