@@ -70,6 +70,7 @@ export function App() {
       <Box h="100vh">
         <Stack flexDir="row" h="100%">
           <Stack
+            overflowY="scroll"
             spacing={0}
             divider={<Divider borderColor="gray.600" />}
             bg="gray.800"

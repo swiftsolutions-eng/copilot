@@ -17,39 +17,31 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
-import FormSelect from './FormSelect'
 
 interface Props extends Omit<ModalProps, 'children'> {
   raw: any
   selectedRole?: string
 }
 
-const AddPermissionModal = (props: Props) => {
+const MergePermissionModal = (props: Props) => {
   const { raw, selectedRole: selectedRoleProp, ...rest } = props
   const toast = useToast()
   const usedRoleName = useRef<any>(undefined)
   const [isLoading, setLoading] = useState(false)
 
-  const roleOptions: { text: string; value: string }[] = useMemo(() => {
-    return (Array.from(raw?.AVAILABLE_ROLES ?? []) ?? []).map(n => ({
-      text: n as string,
-      value: n as string,
-    }))
+  const roleOptions: string[] = useMemo(() => {
+    return Array.from(raw?.AVAILABLE_ROLES ?? []) ?? []
   }, [raw?.AVAILABLE_ROLES])
 
-  const tableOptions: { text: string; value: string }[] = useMemo(() => {
+  const tableOptions: string[] = useMemo(() => {
     return (
-      Object.keys(raw?.tableMap ?? {}).map(n => ({
-        text: n.replace('.yaml', ''),
-        value: n.replace('.yaml', ''),
-      })) ?? []
+      Object.keys(raw?.tableMap ?? {}).map(n => n.replace('.yaml', '')) ?? []
     )
   }, [raw?.tableMap])
 
   const contextOptions = ['company', 'warehouse']
 
   const {
-    control,
     register,
     handleSubmit,
     reset,
@@ -95,23 +87,34 @@ const AddPermissionModal = (props: Props) => {
     <Modal {...rest} isCentered>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Add Permission</ModalHeader>
+        <ModalHeader>Merge Permission</ModalHeader>
         <ModalBody>
           <Stack spacing="4">
-            <FormSelect
-              name="roleName"
-              label="Role"
-              control={control}
-              rules={{ required: 'Required' }}
-              options={roleOptions}
-            />
-            <FormSelect
-              name="tableName"
-              label="Table"
-              control={control}
-              rules={{ required: 'Required' }}
-              options={tableOptions}
-            />
+            <FormControl isRequired isInvalid={!!errors.roleName}>
+              <FormLabel>Role</FormLabel>
+              <Select
+                {...register('roleName', { required: 'Required' })}
+                placeholder="Select Role"
+              >
+                {roleOptions.map(role => (
+                  <option key={role}>{role}</option>
+                ))}
+              </Select>
+              <FormErrorMessage>{errors.roleName?.message}</FormErrorMessage>
+            </FormControl>
+            <FormControl isRequired isInvalid={!!errors.tableName}>
+              <FormLabel>Table</FormLabel>
+              <Select
+                {...register('tableName', { required: 'Required' })}
+                placeholder="Select Table"
+              >
+                {tableOptions.map(table => (
+                  <option key={table}>{table}</option>
+                ))}
+              </Select>
+              <FormErrorMessage>{errors.tableName?.message}</FormErrorMessage>
+            </FormControl>
+
             <FormControl isInvalid={!!errors.context}>
               <FormLabel>Context</FormLabel>
               <Select {...register('context')} placeholder="No Context">
@@ -121,6 +124,7 @@ const AddPermissionModal = (props: Props) => {
               </Select>
               <FormErrorMessage>{errors.context?.message}</FormErrorMessage>
             </FormControl>
+
             <Checkbox
               isChecked={!!isAllowedAggreation}
               {...register('allowAggregation')}
@@ -146,4 +150,4 @@ const AddPermissionModal = (props: Props) => {
   )
 }
 
-export default AddPermissionModal
+export default MergePermissionModal
