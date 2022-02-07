@@ -102,7 +102,7 @@ export const addTableToPermission = async (payload: {
 }) => {
   const tableMap = await getTableMap()
   const target = Object.values(tableMap).find(
-    n => `${n.table.schema}_${n.table.name}` === payload.tableName
+    n => `${n?.table?.schema}_${n?.table?.name}` === payload.tableName
   )
 
   if (!target) return { success: false, message: 'Table not found' }
@@ -149,6 +149,7 @@ export const addTableToPermission = async (payload: {
       permission: {
         allow_aggregations: !!payload.allowAggregation,
         columns: '*',
+        filter: {},
       },
       role: payload.roleName,
     }
@@ -190,4 +191,32 @@ export const addTableToPermission = async (payload: {
   )
 
   return { success: true, message: 'success' }
+}
+
+export const mergeRole = async (payload: { from: string; to: string }) => {
+  const tableMap = await getTableMap()
+  const rolesMap = await getRolesMap(tableMap)
+  const targetTables =
+    rolesMap.find(n => n.roleName === payload.from)?.tables ?? []
+
+  const promises = targetTables.map(t => {
+    return addTableToPermission({
+      roleName: payload.to,
+      tableName: `${t.schema}_${t.name}`,
+      allowAggregation: !!t.permission.allow_aggregations,
+      context: t.permission.filter?.company_id
+        ? 'company'
+        : t.permission.filter?.warehouse_id
+        ? 'warehouse'
+        : undefined,
+    })
+  })
+
+  try {
+    await Promise.all(promises)
+    return { success: true }
+  } catch (error) {
+    console.log(error)
+    return { success: false }
+  }
 }

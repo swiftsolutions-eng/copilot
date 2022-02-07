@@ -16,14 +16,22 @@ import {
 } from '@chakra-ui/react'
 import _groupBy from 'lodash/groupBy'
 import AddPermissionModal from './AddPermissionModal'
+import MergeRoleModal from './MergeRoleModal'
 
 export function App() {
   const { isOpen, onClose, onOpen } = useDisclosure()
+  const {
+    isOpen: isOpenMerge,
+    onClose: onCloseMerge,
+    onOpen: onOpenMerge,
+  } = useDisclosure()
   const [isAppReady, setReady] = useState(false)
   const [raw, setRaw] = useState<any>()
   const [selectedRole, setSelectedRole] = useState<string | undefined>(
     'super_user'
   )
+
+  console.log(raw)
 
   useEffect(() => {
     window.Main.on('is-ready', setReady)
@@ -66,6 +74,12 @@ export function App() {
         raw={raw}
         isOpen={isOpen}
         onClose={onClose}
+      />
+      <MergeRoleModal
+        selectedRole={selectedRole}
+        raw={raw}
+        isOpen={isOpenMerge}
+        onClose={onCloseMerge}
       />
       <Box h="100vh">
         <Stack flexDir="row" h="100%">
@@ -111,9 +125,14 @@ export function App() {
                 align="center"
               >
                 <Heading size="md">{selectedRole}</Heading>
-                <Button colorScheme="blue" onClick={onOpen}>
-                  Add Permission
-                </Button>
+                <Box display="flex" flexDirection="row">
+                  <Button colorScheme="purple" mr="2" onClick={onOpenMerge}>
+                    Merge Role
+                  </Button>
+                  <Button colorScheme="blue" onClick={onOpen}>
+                    Add Permission
+                  </Button>
+                </Box>
               </Stack>
               <Box flex={1} overflowY="scroll">
                 <TableList

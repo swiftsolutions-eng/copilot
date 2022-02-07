@@ -4,6 +4,7 @@ import {
   addTableToPermission,
   isReady,
   chooseSource,
+  mergeRole,
 } from './service'
 
 let mainWindow: BrowserWindow | null
@@ -56,6 +57,12 @@ async function registerListeners() {
   ipcMain.on('save-permission', (event, payload) => {
     addTableToPermission(payload).then(response => {
       event.reply('save-permission-resolved', response)
+    })
+  })
+
+  ipcMain.on('merge-role', (event, payload) => {
+    mergeRole(payload).then(response => {
+      event.reply('merge-role-resolved', response)
     })
   })
 }
