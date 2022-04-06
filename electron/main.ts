@@ -65,6 +65,12 @@ async function registerListeners() {
       event.reply('merge-role-resolved', response)
     })
   })
+
+  ipcMain.on('add-role', (event, payload) => {
+    // mergeRole(payload).then(response => {
+    //   event.reply('add-role-resolved', response)
+    // })
+  })
 }
 
 app

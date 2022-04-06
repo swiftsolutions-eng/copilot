@@ -13,6 +13,7 @@ import AddPermissionModal from './AddPermissionModal'
 import MergeRoleModal from './MergeRoleModal'
 import RoleList from './RoleList'
 
+import folderSelectionImage from './folder_guidance.png'
 import Sidebar from './Sidebar'
 import AddRoleModal from './AddRoleModal'
 
@@ -94,6 +95,11 @@ export function App() {
         raw={raw}
         isOpen={isOpenMerge}
         onClose={onCloseMerge}
+      />
+      <AddRoleModal
+        raw={raw}
+        isOpen={isOpenAddRole}
+        onClose={onCloseAddRole}
       />
       <Box h="100vh">
         <Stack flexDir="row" h="100%">
