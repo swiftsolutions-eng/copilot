@@ -180,10 +180,6 @@ const Table = ({ errors, index, control, raw, remove, register }: TableProps) =>
   }
 
   const tableOptions: {text: string; value: string}[] = useMemo(() => {
-    console.log(
-      Object.keys(raw?.tableMap ?? {}),
-      selectedTables.map((table) => table.name)
-    )
     return (
       Array.from(
         Object.keys(raw?.tableMap ?? {}).filter(
