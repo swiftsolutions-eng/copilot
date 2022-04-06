@@ -1,34 +1,41 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Text,
   Box,
   Stack,
-  Divider,
   Heading,
-  Badge,
   Button,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionIcon,
-  AccordionPanel,
+  Image,
   useDisclosure,
 } from '@chakra-ui/react'
 import _groupBy from 'lodash/groupBy'
 import AddPermissionModal from './AddPermissionModal'
 import MergeRoleModal from './MergeRoleModal'
+import RoleList from './RoleList'
+
+import Sidebar from './Sidebar'
+import AddRoleModal from './AddRoleModal'
 
 export function App() {
-  const { isOpen, onClose, onOpen } = useDisclosure()
+  const {
+    isOpen: isOpenAddPermission,
+    onClose: onCloseAddPermission,
+    onOpen: onOpenAddPermission,
+  } = useDisclosure()
   const {
     isOpen: isOpenMerge,
     onClose: onCloseMerge,
     onOpen: onOpenMerge,
   } = useDisclosure()
+  const {
+    isOpen: isOpenAddRole,
+    onClose: onCloseAddRole,
+    onOpen: onOpenAddRole,
+  } = useDisclosure()
   const [isAppReady, setReady] = useState(false)
   const [raw, setRaw] = useState<any>()
   const [selectedRole, setSelectedRole] = useState<string | undefined>(
-    'super_user'
+    'user'
   )
 
   console.log(raw)
@@ -49,21 +56,28 @@ export function App() {
 
   if (!isAppReady) {
     return (
-      <Box position="relative" h="100vh" w="100vw">
-        <Button
-          position="absolute"
-          top="50%"
-          left="50%"
-          transform="translate(-50%, -50%)"
-          colorScheme="pink"
-          size="lg"
-          onClick={() => {
-            window.Main.sendMessage('choose-source')
-          }}
-        >
-          Browse Metadata Source
-        </Button>
-      </Box>
+      <Stack h="100vh" w="100vw">
+        <Box>
+          <Text textAlign="center">Here's how to find metadata source:</Text>
+          <Image
+            mx="auto"
+            h="sm"
+            src={folderSelectionImage}
+            alt="Select 'warmindo > hasura > metadata > databases > default > tables' folder"
+          />
+        </Box>
+        <Stack alignItems="center">
+          <Button
+            colorScheme="pink"
+            size="lg"
+            onClick={() => {
+              window.Main.sendMessage('choose-source')
+            }}
+          >
+            Browse Metadata Source
+          </Button>
+        </Stack>
+      </Stack>
     )
   }
 
@@ -72,8 +86,8 @@ export function App() {
       <AddPermissionModal
         selectedRole={selectedRole}
         raw={raw}
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isOpenAddPermission}
+        onClose={onCloseAddPermission}
       />
       <MergeRoleModal
         selectedRole={selectedRole}
@@ -83,38 +97,7 @@ export function App() {
       />
       <Box h="100vh">
         <Stack flexDir="row" h="100%">
-          <Stack
-            overflowY="scroll"
-            spacing={0}
-            divider={<Divider borderColor="gray.600" />}
-            bg="gray.800"
-            h="100%"
-          >
-            {Array.from(raw?.AVAILABLE_ROLES ?? [])?.map((role: any) => (
-              <Box
-                onClick={() => {
-                  setSelectedRole(role)
-                }}
-                cursor="pointer"
-                borderLeftWidth="4px"
-                borderStyle="solid"
-                borderLeftColor={
-                  selectedRole === role ? 'gray.100' : 'transparent'
-                }
-                color={selectedRole === role ? 'white' : 'whiteAlpha.500'}
-                fontWeight="bold"
-                _hover={{
-                  color: 'white',
-                  borderLeftColor: 'gray.100',
-                }}
-                key={role}
-                px="4"
-                py="2"
-              >
-                <Text>{role}</Text>
-              </Box>
-            ))}
-          </Stack>
+          <Sidebar {...{ raw, selectedRole, onOpenAddRole, setSelectedRole }} />
           <Box flex={1}>
             <Stack h="100%">
               <Stack
@@ -129,13 +112,13 @@ export function App() {
                   <Button colorScheme="purple" mr="2" onClick={onOpenMerge}>
                     Merge Role
                   </Button>
-                  <Button colorScheme="blue" onClick={onOpen}>
+                  <Button colorScheme="blue" onClick={onOpenAddPermission}>
                     Add Permission
                   </Button>
                 </Box>
               </Stack>
               <Box flex={1} overflowY="scroll">
-                <TableList
+                <RoleList
                   rolesMap={raw?.rolesMap}
                   selectedRole={selectedRole}
                 />
@@ -145,85 +128,5 @@ export function App() {
         </Stack>
       </Box>
     </>
-  )
-}
-
-const TableList = (props: { rolesMap?: any[]; selectedRole?: string }) => {
-  const { rolesMap, selectedRole } = props
-  const selectedData = useMemo(() => {
-    return rolesMap?.find((role: any) => role.roleName === selectedRole)
-  }, [selectedRole, rolesMap])
-
-  const groupedData = useMemo(() => {
-    return _groupBy(selectedData?.tables ?? [], val => val.schema)
-  }, [selectedData])
-
-  if (!selectedData) {
-    return <Text>Select Role to view</Text>
-  }
-
-  return (
-    <Box px="4" pb="6">
-      <Accordion allowToggle>
-        {Object.keys(groupedData).map(gkey => (
-          <AccordionItem key={gkey}>
-            <h2>
-              <AccordionButton>
-                <Box flex="1" textAlign="left">
-                  {gkey} (
-                  <Text as="span" fontWeight="bold">
-                    {groupedData[gkey].length}
-                  </Text>
-                  )
-                </Box>
-                <AccordionIcon />
-              </AccordionButton>
-            </h2>
-            <AccordionPanel bg="gray.200" pb={4}>
-              <Stack spacing={2}>
-                {groupedData[gkey]?.map((table: any) => (
-                  <Box
-                    display="flex"
-                    flexDir="row"
-                    bg="white"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    key={`${table.schema}_${table.name}`}
-                    w="full"
-                    p="2"
-                  >
-                    <Text fontWeight="bold">
-                      {table.schema}_{table.name}
-                    </Text>
-                    <Box
-                      display="flex"
-                      flexDir="row"
-                      alignItems="center"
-                      columnGap={1}
-                    >
-                      {table?.permission?.allow_aggregations ? (
-                        <Box>
-                          <Badge colorScheme="blue">Aggregation</Badge>
-                        </Box>
-                      ) : null}
-                      {table?.permission?.filter?.company_id ? (
-                        <Box>
-                          <Badge colorScheme="pink">Company</Badge>
-                        </Box>
-                      ) : null}
-                      {table?.permission?.filter?.warehouse_id ? (
-                        <Box>
-                          <Badge colorScheme="orange">Warehouse</Badge>
-                        </Box>
-                      ) : null}
-                    </Box>
-                  </Box>
-                ))}
-              </Stack>
-            </AccordionPanel>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </Box>
   )
 }
