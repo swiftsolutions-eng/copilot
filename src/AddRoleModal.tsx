@@ -20,7 +20,7 @@ import {
   VStack,
   Box,
 } from '@chakra-ui/react'
-import { useForm, useFieldArray, useWatch } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch, FieldError, Control, UseFormRegister } from 'react-hook-form'
 import FormSelect from './FormSelect'
 import { FormInput } from './FormInput'
 
@@ -56,7 +56,7 @@ const AddRoleModal = (props: Props) => {
 
   useEffect(() => {
     window.Main.on('add-role-resolved', (args: any) => {
-      if (args.success) {
+      if (!args.map((arg: { success: boolean }) => arg.success).includes(false)) {
         window.Main.sendMessage('fetch-raw')
         toast({ status: 'success', description: 'Role created' })
         reset({
@@ -72,26 +72,7 @@ const AddRoleModal = (props: Props) => {
 
   const onSubmit = handleSubmit(data => {
     setLoading(true)
-    console.log({ data })
-    /**
-     *
-    "data": {
-        "tables": [
-            {
-                "name": "company_company",
-                "context": "company",
-                "allowAggregation": true
-            },
-            {
-                "name": "company_config",
-                "context": "warehouse",
-                "allowAggregation": false
-            }
-        ],
-        "role": "test.full"
-    }
-     */
-    // window.Main.sendMessage('add-role', data)
+    window.Main.sendMessage('add-role', data)
   })
 
   const onAddTable = () => {
@@ -120,15 +101,12 @@ const AddRoleModal = (props: Props) => {
                   tables?.map((table, index) => (
                     <Table
                       key={table.id}
-                      {...{
-                        errors,
-                        table,
-                        index,
-                        control,
-                        raw,
-                        remove,
-                        register,
-                      }}
+                      index={index}
+                      errors={errors}
+                      control={control}
+                      raw={raw}
+                      remove={remove}
+                      register={register}
                     />
                   )) : (
                     <Text textAlign="center">
@@ -162,7 +140,37 @@ const AddRoleModal = (props: Props) => {
   )
 }
 
-const Table = ({ errors, table, index, control, raw, remove, register }: any) => {
+type TableProps = {
+  errors: {
+    role?: FieldError | undefined
+    tables?: {
+      name?: FieldError | undefined
+      allowAggregation?: FieldError | undefined
+      context?: FieldError | undefined
+    }[] | undefined
+  }
+  index: number
+  control: Control<{
+    role: string
+    tables: {
+      name: string
+      allowAggregation?: boolean
+      context?: 'warehouse' | 'company'
+    }[]
+  }, object>
+  raw: any
+  remove: (index?: number | number[] | undefined) => void
+  register: UseFormRegister<{
+    role: string
+    tables: {
+      name: string
+      allowAggregation?: boolean
+      context?: 'warehouse' | 'company'
+    }[]
+  }>
+}
+
+const Table = ({ errors, index, control, raw, remove, register }: TableProps) => {
   const isAllowedAggregation = useWatch({ name: `tables.${index}.allowAggregation`, control })
   const contextOptions = ['company', 'warehouse']
 
@@ -204,6 +212,6 @@ const Table = ({ errors, table, index, control, raw, remove, register }: any) =>
       </HStack>
     </VStack>
   )
-};
+}
 
 export default AddRoleModal
