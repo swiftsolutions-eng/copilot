@@ -172,10 +172,28 @@ type TableProps = {
 
 const Table = ({ errors, index, control, raw, remove, register }: TableProps) => {
   const isAllowedAggregation = useWatch({ name: `tables.${index}.allowAggregation`, control })
+  const selectedTables = useWatch({ name: 'tables', control })
   const contextOptions = ['company', 'warehouse']
 
-  const tableOptions: { text: string; value: string }[] = useMemo(() => {
-    return (Array.from(Object.keys(raw?.tableMap ?? {}) ?? []) ?? []).map(tableFilename => ({
+  if (selectedTables.length > index) {
+    selectedTables.splice(index, 1)
+  }
+
+  const tableOptions: {text: string; value: string}[] = useMemo(() => {
+    console.log(
+      Object.keys(raw?.tableMap ?? {}),
+      selectedTables.map((table) => table.name)
+    )
+    return (
+      Array.from(
+        Object.keys(raw?.tableMap ?? {}).filter(
+          (tableName) => {
+            const tableNames = selectedTables.map((table) => table.name)
+            return !tableNames.includes(tableName.replace('.yaml', ''))
+          }
+        ) ?? []
+      ) ?? []
+    ).map((tableFilename) => ({
       text: tableFilename.replace('.yaml', '') as string,
       value: tableFilename.replace('.yaml', '') as string,
     }))
