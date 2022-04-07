@@ -65,6 +65,19 @@ async function registerListeners() {
       event.reply('merge-role-resolved', response)
     })
   })
+
+  ipcMain.on('add-role', async (event, payload) => {
+    Promise.all(payload.tables.map(
+      (table: { name: string; allowAggregation: boolean; context: 'warehouse' | 'company' }) => addTableToPermission({
+        roleName: payload.role,
+        tableName: table.name,
+        allowAggregation: table.allowAggregation,
+        context: table.context,
+      })
+    )).then(response => {
+      event.reply('add-role-resolved', response)
+    })
+  })
 }
 
 app
