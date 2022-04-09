@@ -6,6 +6,7 @@ import {
   chooseSource,
   mergeRole,
   browseFile,
+  browseDirectory,
 } from './service'
 import { addRoleToQuery } from './parser'
 import { loadConfig, storeConfig } from './config'
@@ -57,15 +58,21 @@ async function registerListeners() {
     event.reply('load-config-resolved', config)
   })
 
-  ipcMain.on('store-config', async (event, payload) => {
+  ipcMain.on('save-config', async (event, payload) => {
     await storeConfig(payload)
-    event.reply('store-config-resolved')
+    event.reply('save-config-resolved')
     event.reply('load-config-resolved', payload)
   })
 
   ipcMain.on('browse-file', event => {
     browseFile().then(filePath => {
       event.reply('browse-file-reply', filePath)
+    })
+  })
+
+  ipcMain.on('browse-directory', event => {
+    browseDirectory().then(filePath => {
+      event.reply('browse-directory-resolved', filePath)
     })
   })
 

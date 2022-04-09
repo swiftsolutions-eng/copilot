@@ -2,7 +2,6 @@
 import os from 'os'
 import path from 'path'
 import fs from 'fs/promises'
-import esbuild from 'esbuild'
 import yaml from 'js-yaml'
 import { exec } from 'child_process'
 import find from 'find'
@@ -21,6 +20,18 @@ type TableDef = {
   name: string
   schema: string
   context: 'warehouse' | 'company' | null
+}
+
+const execEsBuild = async (command: string) => {
+  return new Promise((resolve, reject) => {
+    exec(command, function (err) {
+      if (err) {
+        reject(err)
+        return
+      }
+      resolve(null)
+    })
+  })
 }
 
 const findFile = async (fname: string): Promise<string | null> => {
@@ -86,12 +97,9 @@ export const parseGraphqlQuery = (inputPath: string): Promise<Definition> => {
     try {
       const scriptStr = queryParserTemplate.replace('__template__', inputPath)
       await fs.writeFile(originalScriptPath, scriptStr, 'utf-8')
-      await esbuild.build({
-        entryPoints: [originalScriptPath],
-        bundle: true,
-        target: 'chrome58',
-        outfile: scriptPath,
-      })
+      await execEsBuild(
+        `npx esbuild ${originalScriptPath} --bundle --target=chrome58 --outfile=${scriptPath}`
+      )
       exec(`node ${scriptPath}`, function (err, stdout) {
         if (err) {
           reject(err)
@@ -100,6 +108,7 @@ export const parseGraphqlQuery = (inputPath: string): Promise<Definition> => {
         resolve(JSON.parse(stdout))
       })
     } catch (error) {
+      console.log(error)
       reject(error)
     }
   })

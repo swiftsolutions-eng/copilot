@@ -12,7 +12,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
-import FormSelect from './FormSelect'
+import FormSelect from './components/FormSelect'
 
 interface Props extends Omit<ModalProps, 'children'> {
   raw: any

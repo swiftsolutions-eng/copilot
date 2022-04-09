@@ -21,6 +21,16 @@ export const browseFile = async () => {
   }
 }
 
+export const browseDirectory = async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  })
+
+  if (filePaths.length) {
+    return filePaths[0]
+  }
+}
+
 export const chooseSource = async () => {
   try {
     const location = await dialog.showOpenDialog({

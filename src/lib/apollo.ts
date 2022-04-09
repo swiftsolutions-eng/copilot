@@ -33,7 +33,7 @@ export const fetchRoles = async (
   const { data } = await apolloClient.query({
     query: gql`
       query {
-        roles {
+        user_role {
           id
           name
         }
@@ -41,5 +41,5 @@ export const fetchRoles = async (
     `,
   })
 
-  return data?.roles ?? []
+  return data?.user_role ?? []
 }
