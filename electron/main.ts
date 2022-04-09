@@ -5,6 +5,7 @@ import {
   isReady,
   chooseSource,
   mergeRole,
+  browseFile,
 } from './service'
 
 let mainWindow: BrowserWindow | null
@@ -40,6 +41,12 @@ async function registerListeners() {
     console.log(message)
   })
 
+  ipcMain.on('browse-file', event => {
+    browseFile().then(filePath => {
+      event.reply('browse-file-reply', filePath)
+    })
+  })
+
   ipcMain.on('choose-source', event => {
     chooseSource()
       .then()
@@ -67,14 +74,21 @@ async function registerListeners() {
   })
 
   ipcMain.on('add-role', async (event, payload) => {
-    Promise.all(payload.tables.map(
-      (table: { name: string; allowAggregation: boolean; context: 'warehouse' | 'company' }) => addTableToPermission({
-        roleName: payload.role,
-        tableName: table.name,
-        allowAggregation: table.allowAggregation,
-        context: table.context,
-      })
-    )).then(response => {
+    Promise.all(
+      payload.tables.map(
+        (table: {
+          name: string
+          allowAggregation: boolean
+          context: 'warehouse' | 'company'
+        }) =>
+          addTableToPermission({
+            roleName: payload.role,
+            tableName: table.name,
+            allowAggregation: table.allowAggregation,
+            context: table.context,
+          })
+      )
+    ).then(response => {
       event.reply('add-role-resolved', response)
     })
   })

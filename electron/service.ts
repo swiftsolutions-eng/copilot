@@ -11,6 +11,16 @@ const AVAILABLE_ROLES = new Set()
 
 export const isReady = () => !!SOURCE_FOLDER
 
+export const browseFile = async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+  })
+
+  if (filePaths.length) {
+    return filePaths[0]
+  }
+}
+
 export const chooseSource = async () => {
   try {
     const location = await dialog.showOpenDialog({

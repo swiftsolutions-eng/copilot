@@ -8,7 +8,6 @@ import {
   Image,
   useDisclosure,
 } from '@chakra-ui/react'
-import _groupBy from 'lodash/groupBy'
 import AddPermissionModal from './AddPermissionModal'
 import MergeRoleModal from './MergeRoleModal'
 import RoleList from './RoleList'
@@ -17,7 +16,7 @@ import folderSelectionImage from './folder_guidance.png'
 import Sidebar from './Sidebar'
 import AddRoleModal from './AddRoleModal'
 
-export function App() {
+const Explorer = () => {
   const {
     isOpen: isOpenAddPermission,
     onClose: onCloseAddPermission,
@@ -35,9 +34,7 @@ export function App() {
   } = useDisclosure()
   const [isAppReady, setReady] = useState(false)
   const [raw, setRaw] = useState<any>()
-  const [selectedRole, setSelectedRole] = useState<string | undefined>(
-    'user'
-  )
+  const [selectedRole, setSelectedRole] = useState<string | undefined>('user')
 
   console.log(raw)
 
@@ -96,11 +93,7 @@ export function App() {
         isOpen={isOpenMerge}
         onClose={onCloseMerge}
       />
-      <AddRoleModal
-        raw={raw}
-        isOpen={isOpenAddRole}
-        onClose={onCloseAddRole}
-      />
+      <AddRoleModal raw={raw} isOpen={isOpenAddRole} onClose={onCloseAddRole} />
       <Box h="100vh">
         <Stack flexDir="row" h="100%">
           <Sidebar {...{ raw, selectedRole, onOpenAddRole, setSelectedRole }} />
@@ -136,3 +129,5 @@ export function App() {
     </>
   )
 }
+
+export default Explorer

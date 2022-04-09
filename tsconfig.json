@@ -4,15 +4,13 @@
     "module": "commonjs",
     "lib": [
       "dom",
-      "es2015",
-      "es2016",
-      "es2017"
+      "ESNext"
     ],
     "allowJs": true,
     "jsx": "react-jsx",
     "sourceMap": true,
     "outDir": "./dist",
-    "strict": true ,
+    "strict": true,
     "esModuleInterop": true,
   }
 }
