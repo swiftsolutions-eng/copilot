@@ -27,7 +27,6 @@ export const parseGraphqlQuery = (inputPath: string): Promise<Definition> => {
       })
       exec(`node ${scriptPath}`, function (err, stdout) {
         if (err) {
-          console.log(err)
           reject(err)
           return
         }
