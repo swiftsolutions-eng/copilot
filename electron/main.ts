@@ -7,6 +7,8 @@ import {
   mergeRole,
   browseFile,
 } from './service'
+import { addRoleToQuery } from './parser'
+import { loadConfig, storeConfig } from './config'
 
 let mainWindow: BrowserWindow | null
 
@@ -39,6 +41,26 @@ async function registerListeners() {
    */
   ipcMain.on('message', (_, message) => {
     console.log(message)
+  })
+
+  ipcMain.on('add-role-to-query', async (event, payload) => {
+    try {
+      const res = await addRoleToQuery(payload.sourceFile, payload.role)
+      event.reply('add-role-to-query-resolved', res)
+    } catch (error) {
+      event.reply('add-role-to-query-rejected', error)
+    }
+  })
+
+  ipcMain.on('load-config', async event => {
+    const config = await loadConfig()
+    event.reply('load-config-resolved', config)
+  })
+
+  ipcMain.on('store-config', async (event, payload) => {
+    await storeConfig(payload)
+    event.reply('store-config-resolved')
+    event.reply('load-config-resolved', payload)
   })
 
   ipcMain.on('browse-file', event => {

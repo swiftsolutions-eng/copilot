@@ -1,5 +1,5 @@
 import fetch from 'cross-fetch'
-import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+import { ApolloClient, HttpLink, InMemoryCache, gql } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
 
 export const createApolloClient = (uri: string, secret: string) => {
@@ -22,4 +22,24 @@ export const createApolloClient = (uri: string, secret: string) => {
   })
 
   return apolloClient
+}
+
+export const fetchRoles = async (
+  uri: string,
+  secret: string
+): Promise<{ id: string; name: string }[]> => {
+  const apolloClient = createApolloClient(uri, secret)
+
+  const { data } = await apolloClient.query({
+    query: gql`
+      query {
+        roles {
+          id
+          name
+        }
+      }
+    `,
+  })
+
+  return data?.roles ?? []
 }

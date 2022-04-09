@@ -8,7 +8,7 @@ module.exports = [
     exclude: [/node_modules\/prettier/],
     parser: { amd: false },
     use: {
-      loader: '@marshallofsound/webpack-asset-relocator-loader',
+      loader: '@timfish/webpack-asset-relocator-loader',
       options: {
         outputAssetBase: 'native_modules',
       },

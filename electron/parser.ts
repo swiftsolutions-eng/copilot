@@ -6,9 +6,10 @@ import esbuild from 'esbuild'
 import yaml from 'js-yaml'
 import { exec } from 'child_process'
 import find from 'find'
-import { gql } from '@apollo/client'
 import { sortBy } from 'lodash'
-import apolloClient from './apolloClient'
+import { gql } from '@apollo/client'
+import { loadConfig } from './config'
+import { createApolloClient } from './apolloClient'
 import { queryParserTemplate } from './template'
 
 type Definition = {
@@ -16,11 +17,16 @@ type Definition = {
   relations: Definition[]
 }
 
-const HASURA_PATH = '/Users/adeyahya/dev/warmindo/hasura'
+type TableDef = {
+  name: string
+  schema: string
+  context: 'warehouse' | 'company' | null
+}
 
-const findFile = (fname: string): Promise<string | null> => {
+const findFile = async (fname: string): Promise<string | null> => {
+  const config = await loadConfig()
   return new Promise(resolve => {
-    find.file(fname, HASURA_PATH, result => {
+    find.file(fname, config?.hasuraSource ?? '', result => {
       if (result?.[0]) {
         return resolve(result[0])
       }
@@ -33,7 +39,11 @@ const findFile = (fname: string): Promise<string | null> => {
 let instrospectionCache: any = null
 const getInstrospection = async () => {
   if (instrospectionCache !== null) return instrospectionCache
-
+  const config = await loadConfig()
+  const apolloClient = createApolloClient(
+    config?.graphqlUri ?? '',
+    config?.secret ?? ''
+  )
   const { data } = await apolloClient.query({
     query: gql`
       {
@@ -143,7 +153,7 @@ const addQueryPermission = async (
   // remove current role
   _jsonDef.select_permissions = _jsonDef.select_permissions.filter(
     (item: any) => {
-      return item.permission.role !== role
+      return item.role !== role
     }
   )
 
@@ -165,13 +175,10 @@ const addQueryPermission = async (
               },
             }
           : {},
-      role,
     },
+    role,
   })
-  _jsonDef.select_permissions = sortBy(
-    _jsonDef.select_permissions,
-    'permission.role'
-  )
+  _jsonDef.select_permissions = sortBy(_jsonDef.select_permissions, 'role')
 
   const yamlString = yaml.dump(_jsonDef, {
     noArrayIndent: true,
@@ -181,19 +188,20 @@ const addQueryPermission = async (
   await fs.writeFile(fpath, yamlString)
 }
 
-const run = async () => {
-  const tables = await parseGraphqlQuery(
-    '/Users/adeyahya/dev/wms-core-ui/packages/gqls/queries/inbound/inbound.query.ts'
-  )
+export const addRoleToQuery = async (
+  sourceFile: string,
+  role: string
+): Promise<TableDef[]> => {
+  const tables = await parseGraphqlQuery(sourceFile)
 
-  const result: any[] = []
-  const goThrough = async (def: Definition, fname: string) => {
+  const result: TableDef[] = []
+  const walker = async (def: Definition, fname: string) => {
     const absFile = await findFile(`${fname}.yaml`)
     const yamlText = await fs.readFile(absFile!, 'utf-8')
     const jsonDef = yaml.load(yamlText) as any
     const formattedName = jsonDef.table.schema + '_' + jsonDef.table.name
     const context = await getQueryContext(formattedName)
-    await addQueryPermission(jsonDef, absFile!, 'ade.coba.sekuy', context)
+    await addQueryPermission(jsonDef, absFile!, role, context)
     result.push({ ...jsonDef.table, context })
 
     const promises: any = def.relations.map(async rel => {
@@ -202,20 +210,18 @@ const run = async () => {
 
       if (objRel) {
         const _fname = objRel.schema + '_' + objRel.name
-        return await goThrough(rel, _fname)
+        return await walker(rel, _fname)
       }
 
       if (arrRel) {
         const _fname = arrRel.schema + '_' + arrRel.name
-        return await goThrough(rel, _fname)
+        return await walker(rel, _fname)
       }
     })
 
     return await Promise.all(promises)
   }
 
-  await goThrough(tables, tables.name)
-  console.log(result)
+  await walker(tables, tables.name)
+  return result
 }
-
-run()
