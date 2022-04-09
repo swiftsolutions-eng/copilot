@@ -2796,6 +2796,11 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-0.0.47.tgz#d7a51db20f0650efec24cd04994f523d93172ed4"
   integrity sha512-c5ciR06jK8u9BstrmJyO97m+klJrrhCf9u3rLu3DEAJBirxRqSCvDQoYKmxuYwQI5SZChAWu+tq9oVlGRuzPAg==
 
+"@types/find@^0.2.1":
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/@types/find/-/find-0.2.1.tgz#e8d0d7a952be2d90768d6f8dd7f2e6630bb260f8"
+  integrity sha512-qUrCBlWoo9ij6ZEMx8G2WEjkdpofFks37/eZSDce7e0BY8lCYS2u7dVAoBy6AKRGX8z/ukllrUAyQ8h+/zlW9w==
+
 "@types/fs-extra@^9.0.1":
   version "9.0.11"
   resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-9.0.11.tgz#8cc99e103499eab9f347dbc6ca4e99fb8d2c2b87"
@@ -5840,6 +5845,13 @@ find-up@^5.0.0:
   dependencies:
     locate-path "^6.0.0"
     path-exists "^4.0.0"
+
+find@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/find/-/find-0.3.0.tgz#4082e8fc8d8320f1a382b5e4f521b9bc50775cb8"
+  integrity sha512-iSd+O4OEYV/I36Zl8MdYJO0xD82wH528SaCieTVHhclgiYNe9y+yPKSwK+A7/WsmHL1EZ+pYUJBXWTL5qofksw==
+  dependencies:
+    traverse-chain "~0.1.0"
 
 flat-cache@^3.0.4:
   version "3.0.4"
@@ -10718,6 +10730,11 @@ tr46@^2.1.0:
   integrity sha512-15Ih7phfcdP5YxqiB+iDtLoaTz4Nd35+IiAv0kQ5FNKHzXgdWqPoTIqEDDJmXceQt4JZk6lVPT8lnDlPpGDppw==
   dependencies:
     punycode "^2.1.1"
+
+traverse-chain@~0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/traverse-chain/-/traverse-chain-0.1.0.tgz#61dbc2d53b69ff6091a12a168fd7d433107e40f1"
+  integrity sha1-YdvC1Ttp/2CRoSoWj9fUMxB+QPE=
 
 trim-newlines@^1.0.0:
   version "1.0.0"
