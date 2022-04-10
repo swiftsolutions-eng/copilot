@@ -22,6 +22,7 @@ export interface FormSelectSearchItem {
 }
 
 export interface FormSelectSearchProps<TFieldValues>
+  // @ts-ignore
   extends UseControllerProps<TFieldValues> {
   label?: string
   placeholder?: string

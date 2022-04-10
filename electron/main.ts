@@ -1,3 +1,4 @@
+import fixPath from 'fix-path'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import {
   getRawData,
@@ -6,7 +7,12 @@ import {
   chooseSource,
   mergeRole,
   browseFile,
+  browseDirectory,
 } from './service'
+import { addRoleToQuery } from './parser'
+import { loadConfig, storeConfig } from './config'
+
+fixPath()
 
 let mainWindow: BrowserWindow | null
 
@@ -41,9 +47,35 @@ async function registerListeners() {
     console.log(message)
   })
 
+  ipcMain.on('add-role-to-query', async (event, payload) => {
+    try {
+      const res = await addRoleToQuery(payload.sourceFile, payload.role)
+      event.reply('add-role-to-query-resolved', res)
+    } catch (error) {
+      event.reply('add-role-to-query-rejected', error)
+    }
+  })
+
+  ipcMain.on('load-config', async event => {
+    const config = await loadConfig()
+    event.reply('load-config-resolved', config)
+  })
+
+  ipcMain.on('save-config', async (event, payload) => {
+    await storeConfig(payload)
+    event.reply('save-config-resolved')
+    event.reply('load-config-resolved', payload)
+  })
+
   ipcMain.on('browse-file', event => {
     browseFile().then(filePath => {
       event.reply('browse-file-reply', filePath)
+    })
+  })
+
+  ipcMain.on('browse-directory', event => {
+    browseDirectory().then(filePath => {
+      event.reply('browse-directory-resolved', filePath)
     })
   })
 
