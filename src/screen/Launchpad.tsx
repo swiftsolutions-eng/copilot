@@ -90,7 +90,8 @@ const Launchpad = () => {
       setResult(res)
       setLoading(false)
     })
-    window.Main.on('add-role-to-query-rejected', () => {
+    window.Main.on('add-role-to-query-rejected', (error: any) => {
+      console.log(error)
       setLoading(false)
     })
     window.Main.on('browse-file-reply', setFilePath)

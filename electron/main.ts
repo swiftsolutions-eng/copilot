@@ -1,3 +1,4 @@
+import fixPath from 'fix-path'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import {
   getRawData,
@@ -10,6 +11,8 @@ import {
 } from './service'
 import { addRoleToQuery } from './parser'
 import { loadConfig, storeConfig } from './config'
+
+fixPath()
 
 let mainWindow: BrowserWindow | null
 

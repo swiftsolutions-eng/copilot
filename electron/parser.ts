@@ -108,7 +108,6 @@ export const parseGraphqlQuery = (inputPath: string): Promise<Definition> => {
         resolve(JSON.parse(stdout))
       })
     } catch (error) {
-      console.log(error)
       reject(error)
     }
   })
