@@ -22,7 +22,7 @@ type TableDef = {
   context: 'warehouse' | 'company' | null
 }
 
-const execEsBuild = async (command: string) => {
+const execCommand = async (command: string) => {
   return new Promise((resolve, reject) => {
     exec(command, function (err) {
       if (err) {
@@ -97,7 +97,7 @@ export const parseGraphqlQuery = (inputPath: string): Promise<Definition> => {
     try {
       const scriptStr = queryParserTemplate.replace('__template__', inputPath)
       await fs.writeFile(originalScriptPath, scriptStr, 'utf-8')
-      await execEsBuild(
+      await execCommand(
         `npx esbuild ${originalScriptPath} --bundle --target=chrome58 --outfile=${scriptPath}`
       )
       exec(`node ${scriptPath}`, function (err, stdout) {
@@ -169,6 +169,7 @@ const addQueryPermission = async (
   // add new role
   _jsonDef.select_permissions.push({
     permission: {
+      allow_aggregations: true,
       columns: '*',
       filter:
         context === 'warehouse'

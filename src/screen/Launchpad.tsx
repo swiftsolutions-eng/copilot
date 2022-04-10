@@ -57,6 +57,7 @@ const Launchpad = () => {
 
   const handleSave = () => {
     setLoading(true)
+    setResult([])
     window.Main.sendMessage('add-role-to-query', {
       sourceFile: filePath,
       role: selectedRole,
