@@ -159,11 +159,10 @@ const addQueryPermission = async (
 ) => {
   const _jsonDef = jsonDef
   // remove current role
-  _jsonDef.select_permissions = _jsonDef.select_permissions.filter(
-    (item: any) => {
+  _jsonDef.select_permissions =
+    _jsonDef.select_permissions?.filter((item: any) => {
       return item.role !== role
-    }
-  )
+    }) ?? []
 
   // add new role
   _jsonDef.select_permissions.push({
