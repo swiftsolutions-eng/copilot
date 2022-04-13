@@ -1,14 +1,13 @@
 {
   "package": {
-    "productName": "copilot-tauri",
+    "productName": "copilot",
     "version": "0.1.0"
   },
   "build": {
     "distDir": "../dist",
     "devPath": "http://localhost:3000",
     "beforeDevCommand": "yarn dev",
-    "beforeBuildCommand": "yarn build",
-    "withGlobalTauri": true
+    "beforeBuildCommand": "yarn build"
   },
   "tauri": {
     "bundle": {
@@ -81,8 +80,8 @@
     },
     "windows": [{
       "title": "Copilot",
-      "width": 800,
-      "height": 600,
+      "width": 1100,
+      "height": 800,
       "resizable": true,
       "fullscreen": false
     }],
