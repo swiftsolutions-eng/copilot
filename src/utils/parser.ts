@@ -122,7 +122,37 @@ const findRelationByName = (
   return null
 }
 
-const loadQueryPackage = () => {}
+export const loadCoreUIQueries = (): Promise<{name: string; path: string}[]> => {
+  const loadQueryFileName = (subDir: FileEntry[]): {name: string; path: string}[] => {
+    const fileNames = []
+    const getFileName = (file: FileEntry) => {
+      if (file.name == null) return null
+      if (file.name.length < 9) return null
+      if (!file.name.includes('.query.ts')) return null
+      return {name: file.name, path: file.path}
+    }
+    for (const dir of subDir) {
+      const fileName = getFileName(dir)
+      if (fileName) fileNames.push(fileName)
+      if (dir.children != null && dir.children?.length > 0) {
+        const childrenFileNames = loadQueryFileName(dir.children)
+        if (childrenFileNames.length > 0) fileNames.push(...childrenFileNames)
+      }
+    }
+    return fileNames
+  }
+  return new Promise(async (resolve, reject) => {
+    try {
+      const config = await loadConfig()
+      if (config == null) return null
+      const subDir = await readDir(config.coreUISource + '/packages/gqls/queries', {recursive: true})
+      const fileNames = loadQueryFileName(subDir)
+      resolve(fileNames)
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
 
 const getQueryContext = async (
   queryName: string
