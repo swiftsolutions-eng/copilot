@@ -16,20 +16,15 @@ import {
   FormErrorMessage,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
-import { loadConfig, storeConfig } from '../utils/config'
+
+import { Config, loadConfig, storeConfig } from '../utils/config'
 import { browseDirectory } from '../utils/service'
 
-type FormDataType = {
-  secret: string
-  graphqlUri: string
-  hasuraSource: string
-}
-
-interface ConfigModalProps extends Omit<ModalProps, 'children'> {}
+interface ConfigModalProps extends Omit<ModalProps, 'children'> { }
 
 const ConfigModal = (props: ConfigModalProps) => {
   const [isLoading, setLoading] = useState(false)
-  const [loadedConfig, setLoadedConfig] = useState<FormDataType | null>(null)
+  const [loadedConfig, setLoadedConfig] = useState<Config | null>(null)
   const [errors, setErrors] = useState<any>()
   const {
     register,
@@ -37,7 +32,7 @@ const ConfigModal = (props: ConfigModalProps) => {
     reset,
     handleSubmit,
     formState: { errors: formErrors, isDirty },
-  } = useForm<FormDataType>()
+  } = useForm<Config>()
 
   const onSubmit = handleSubmit(async (data) => {
     setLoading(true)
@@ -71,76 +66,97 @@ const ConfigModal = (props: ConfigModalProps) => {
     }
   }, [loadedConfig])
 
-  const handleBrowse = () => {
+  const browseSource = (name: "hasuraSource" | "coreUISource") => {
     browseDirectory().then(filePath => {
-      setValue('hasuraSource', filePath)
+      setValue(name, filePath, { shouldDirty: true })
     })
   }
 
+  const handleBrowseHasura = () => {
+    browseSource('hasuraSource')
+  }
+
+  const handleBrowseCoreUI = () => {
+    browseSource('coreUISource')
+  }
+
   return (
-    <>
-      <Modal {...props} isCentered size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Config</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Stack>
-              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
-                <FormLabel>Hasura Graphql Url</FormLabel>
+    <Modal {...props} isCentered size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Config</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <Stack>
+            <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
+              <FormLabel>Hasura Graphql Url</FormLabel>
+              <Input
+                {...register('graphqlUri', {
+                  required: 'Graphql URL is required',
+                })}
+              />
+              <FormErrorMessage>
+                {formErrors.graphqlUri?.message}
+              </FormErrorMessage>
+            </FormControl>
+            <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
+              <FormLabel>Hasura Source</FormLabel>
+              <Stack w="full" direction="row">
                 <Input
-                  {...register('graphqlUri', {
-                    required: 'Graphql URL is required',
+                  isReadOnly={true}
+                  {...register('hasuraSource', {
+                    required: 'Hasura Source is required',
                   })}
                 />
-                <FormErrorMessage>
-                  {formErrors.graphqlUri?.message}
-                </FormErrorMessage>
-              </FormControl>
-              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
-                <FormLabel>Hasura Source</FormLabel>
-                <Stack w="full" direction="row">
-                  <Input
-                    isReadOnly={true}
-                    {...register('hasuraSource', {
-                      required: 'Hasura Source is required',
-                    })}
-                  />
-                  <Button onClick={handleBrowse}>Browse Folder</Button>
-                </Stack>
-                <FormErrorMessage>
-                  {formErrors.graphqlUri?.message}
-                </FormErrorMessage>
-              </FormControl>
-              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
-                <FormLabel>Hasura Admin Secret</FormLabel>
+                <Button onClick={handleBrowseHasura}>Browse Folder</Button>
+              </Stack>
+              <FormErrorMessage>
+                {formErrors.hasuraSource?.message}
+              </FormErrorMessage>
+            </FormControl>
+            <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
+              <FormLabel>Core UI Source</FormLabel>
+              <Stack w="full" direction="row">
                 <Input
-                  {...register('secret', {
-                    required: 'Hasura Admin Secret is required',
+                  isReadOnly={true}
+                  {...register('coreUISource', {
+                    required: 'Core UI is required',
                   })}
                 />
-                <FormErrorMessage>
-                  {formErrors.graphqlUri?.message}
-                </FormErrorMessage>
-                <FormErrorMessage>
-                  {errors}
-                </FormErrorMessage>
-              </FormControl>
-            </Stack>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              isLoading={isLoading}
-              isDisabled={!isDirty}
-              onClick={onSubmit}
-            >
-              Save
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </>
+                <Button onClick={handleBrowseCoreUI}>Browse Folder</Button>
+              </Stack>
+              <FormErrorMessage>
+                {formErrors.coreUISource?.message}
+              </FormErrorMessage>
+            </FormControl>
+            <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
+              <FormLabel>Hasura Admin Secret</FormLabel>
+              <Input
+                {...register('secret', {
+                  required: 'Hasura Admin Secret is required',
+                })}
+              />
+              <FormErrorMessage>
+                {formErrors.secret?.message}
+              </FormErrorMessage>
+            </FormControl>
+            <FormErrorMessage>
+              {errors}
+            </FormErrorMessage>
+          </Stack>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            colorScheme="blue"
+            isLoading={isLoading}
+            isDisabled={!isDirty}
+            onClick={onSubmit}
+          >
+            Save
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   )
 }
 
