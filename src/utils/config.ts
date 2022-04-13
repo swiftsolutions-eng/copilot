@@ -1,7 +1,7 @@
-import { createDir, readTextFile, writeFile } from '@tauri-apps/api/fs'
+import { createDir, readDir, readTextFile, writeFile } from '@tauri-apps/api/fs'
 import { homeDir, join } from '@tauri-apps/api/path'
 
-type Config = {
+export type Config = {
   secret: string
   graphqlUri: string
   hasuraSource: string
@@ -21,9 +21,13 @@ export const loadConfig = async (): Promise<Config | null> => {
 }
 
 export const storeConfig = async (config: Config) => {
+  console.log('hai')
   const HOME_DIR = await homeDir()
   const CONFIG_DIR = `${HOME_DIR}/.config/`
   const CONFIG_FILE = await join(CONFIG_DIR, 'swift-copilot.json')
+
+  const configDir = await readDir(CONFIG_DIR)
+  console.log({configDir})
   await createDir(CONFIG_DIR, { recursive: true })
   await writeFile({path: CONFIG_FILE, contents: JSON.stringify(config, null, 2)})
 }

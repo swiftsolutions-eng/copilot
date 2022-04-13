@@ -13,46 +13,32 @@ import {
   Badge,
 } from '@chakra-ui/react'
 import { SettingsIcon } from '@chakra-ui/icons'
-import { useDropzone } from 'react-dropzone'
 import { useForm, useWatch } from 'react-hook-form'
 import FormSelect from '../components/FormSelect'
 import { fetchRoles } from '../lib/apollo'
 import ConfigModal from '../components/ConfigModal'
-import { loadConfig } from '../utils/config'
+import { Config, loadConfig } from '../utils/config'
 import { addRoleToQuery } from '../utils/parser'
 import { browseFile } from '../utils/service'
-
-type Config = {
-  secret: string
-  graphqlUri: string
-  hasuraSource: string
-}
 
 type FormDataType = {
   role: string
 }
 
 const Launchpad = () => {
-  const [filePath, setFilePath] = useState('')
-  const onDrop = useCallback((acceptedFiles: any[]) => {
-    console.log({ acceptedFiles })
-    const file = acceptedFiles[0]
-    setFilePath(file.path)
-  }, [])
-  const { getRootProps, getInputProps } = useDropzone({ onDrop })
-  const [config, setConfig] = useState<{
-    value: Config | null
-    isLoading: boolean
-  }>({
-    value: null,
-    isLoading: true,
-  })
-  const [isLoading, setLoading] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
+
+  const [filePath, setFilePath] = useState('')
+  const [config, setConfig] = useState<Config | null>()
+  const [isLoading, setLoading] = useState(true)
   const [result, setResult] = useState<any[]>([])
   const [roleList, setRoleList] = useState<any[]>([])
+  const [errors, setErrors] = useState<any>()
+
   const { control } = useForm<FormDataType>()
+
   const selectedRole = useWatch({ control, name: 'role' })
+
   const formattedPath = useMemo(() => {
     if (!filePath) return ''
 
@@ -66,58 +52,68 @@ const Launchpad = () => {
       const res = await addRoleToQuery(filePath, selectedRole)
       setResult(res)
     } catch (err) {
-      console.error('failed to add role:', err)
+      setErrors('failed to add role: ' + JSON.stringify(err))
     } finally {
       setLoading(false)
     }
   }
 
-  const init = async () => {
+  const initConfig = async () => {
+    setLoading(true)
     try {
       const config = await loadConfig()
-      setConfig({ value: config, isLoading: false })
+      setConfig(config)
     } catch (err) {
-      console.error('init app failed:', err)
+      setErrors('init app failed: ' + JSON.stringify(err))
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (!config.isLoading && config.value === null) {
-      onOpen()
+    if (!isLoading && config == null) onOpen()
+  }, [config, isLoading])
+
+  useEffect(() => {
+    if (!isLoading && config == null) onOpen()
+    if (config != null) {
+      setLoading(true)
+      fetchRoles(config?.graphqlUri, config?.secret)
+        .then(result => {
+          setRoleList(result.map(item => ({ text: item.name, value: item.name })))
+        })
+        .catch((err) => {
+          setErrors('init app failed: ' + JSON.stringify(err))
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
   }, [config])
 
   useEffect(() => {
-    if (config.value !== null) {
-      fetchRoles(config.value.graphqlUri, config.value.secret).then(result => {
-        setRoleList(result.map(item => ({ text: item.name, value: item.name })))
-      })
-    }
-  }, [config.value])
-
-  useEffect(() => {
-    init()
-    // window.Main.on('browse-file-reply', setFilePath)
+    initConfig()
   }, [])
 
   return (
     <Box
-      {...getRootProps()}
+      // {...getRootProps()}
       position="relative"
     >
       <ConfigModal isOpen={isOpen} onClose={onClose} />
       <IconButton
-        position="absolute"
-        top="4"
-        right="4"
+        // position="absolute"
+        // top="4"
+        // right="4"
         colorScheme="blue"
         aria-label="config"
         onClick={onOpen}
         icon={<SettingsIcon />}
       />
-      <Box pointerEvents="none">
+      {/* <Box pointerEvents="none">
         <input {...getInputProps()} />
-      </Box>
+      </Box> */}
+      <Text>test{errors}</Text>
       <Container h="100vh" maxW="container.xl">
         <Stack h="100vh" py="4">
           <Box
@@ -133,7 +129,7 @@ const Launchpad = () => {
           >
             <Heading>Drag & Drop gql file</Heading>
             <Heading mt={4} size="sm">
-              Selected File: {formattedPath}
+              Selected Fileee: {formattedPath}
             </Heading>
             {result.length > 0 ? (
               <Box mt="4">

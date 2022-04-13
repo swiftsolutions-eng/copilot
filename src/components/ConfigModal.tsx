@@ -16,7 +16,7 @@ import {
   FormErrorMessage,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
-import { loadConfig } from '../utils/config'
+import { loadConfig, storeConfig } from '../utils/config'
 import { browseDirectory } from '../utils/service'
 
 type FormDataType = {
@@ -30,17 +30,24 @@ interface ConfigModalProps extends Omit<ModalProps, 'children'> {}
 const ConfigModal = (props: ConfigModalProps) => {
   const [isLoading, setLoading] = useState(false)
   const [loadedConfig, setLoadedConfig] = useState<FormDataType | null>(null)
+  const [errors, setErrors] = useState<any>()
   const {
     register,
     setValue,
     reset,
     handleSubmit,
-    formState: { errors, isDirty },
+    formState: { errors: formErrors, isDirty },
   } = useForm<FormDataType>()
 
-  const onSubmit = handleSubmit(data => {
+  const onSubmit = handleSubmit(async (data) => {
     setLoading(true)
-    // window.Main.sendMessage('save-config', data)
+    try {
+      await storeConfig(data)
+    } catch (err) {
+      setErrors('saving configs failed:' + JSON.stringify(err))
+    } finally {
+      setLoading(false)
+    }
   })
 
   const init = async () => {
@@ -79,7 +86,7 @@ const ConfigModal = (props: ConfigModalProps) => {
           <ModalCloseButton />
           <ModalBody>
             <Stack>
-              <FormControl isRequired isInvalid={!!errors.graphqlUri}>
+              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
                 <FormLabel>Hasura Graphql Url</FormLabel>
                 <Input
                   {...register('graphqlUri', {
@@ -87,10 +94,10 @@ const ConfigModal = (props: ConfigModalProps) => {
                   })}
                 />
                 <FormErrorMessage>
-                  {errors.graphqlUri?.message}
+                  {formErrors.graphqlUri?.message}
                 </FormErrorMessage>
               </FormControl>
-              <FormControl isRequired isInvalid={!!errors.graphqlUri}>
+              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
                 <FormLabel>Hasura Source</FormLabel>
                 <Stack w="full" direction="row">
                   <Input
@@ -102,10 +109,10 @@ const ConfigModal = (props: ConfigModalProps) => {
                   <Button onClick={handleBrowse}>Browse Folder</Button>
                 </Stack>
                 <FormErrorMessage>
-                  {errors.graphqlUri?.message}
+                  {formErrors.graphqlUri?.message}
                 </FormErrorMessage>
               </FormControl>
-              <FormControl isRequired isInvalid={!!errors.graphqlUri}>
+              <FormControl isRequired isInvalid={!!formErrors.graphqlUri}>
                 <FormLabel>Hasura Admin Secret</FormLabel>
                 <Input
                   {...register('secret', {
@@ -113,7 +120,10 @@ const ConfigModal = (props: ConfigModalProps) => {
                   })}
                 />
                 <FormErrorMessage>
-                  {errors.graphqlUri?.message}
+                  {formErrors.graphqlUri?.message}
+                </FormErrorMessage>
+                <FormErrorMessage>
+                  {errors}
                 </FormErrorMessage>
               </FormControl>
             </Stack>
