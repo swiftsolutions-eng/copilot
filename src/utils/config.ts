@@ -5,6 +5,7 @@ export type Config = {
   secret: string
   graphqlUri: string
   hasuraSource: string
+  coreUISource: string
 }
 
 export const loadConfig = async (): Promise<Config | null> => {
@@ -21,13 +22,12 @@ export const loadConfig = async (): Promise<Config | null> => {
 }
 
 export const storeConfig = async (config: Config) => {
-  console.log('hai')
   const HOME_DIR = await homeDir()
   const CONFIG_DIR = `${HOME_DIR}/.config/`
   const CONFIG_FILE = await join(CONFIG_DIR, 'swift-copilot.json')
 
   const configDir = await readDir(CONFIG_DIR)
-  console.log({configDir})
-  await createDir(CONFIG_DIR, { recursive: true })
+  const copilotConfig = configDir?.map(c => c.name)?.find(fileName => fileName === 'swift-copilot.json')
+  if (copilotConfig == null) await createDir(CONFIG_DIR, { recursive: true })
   await writeFile({path: CONFIG_FILE, contents: JSON.stringify(config, null, 2)})
 }
