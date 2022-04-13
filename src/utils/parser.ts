@@ -26,14 +26,12 @@ const findFile = async (fname: string): Promise<string | null> => {
   const pickFile = (fileEntries: FileEntry[], fname: string) => {
     let found: any
     for (const fileEntry of fileEntries) {
-      console.log('name', fileEntry.name)
       if (fileEntry.name === fname) {
         found = fileEntry
         break
       }
       if ((fileEntry?.children ?? []).length > 0) {
         const file = pickFile(fileEntry.children!, fname)
-        console.log('have children', file?.name === fname)
         if (file?.name === fname) {
           found = file
           break
@@ -45,22 +43,14 @@ const findFile = async (fname: string): Promise<string | null> => {
   return new Promise(async (resolve, reject) => {
     if (config?.hasuraSource == null) reject(new Error('not found'))
     const subDir = await readDir(config!.hasuraSource, {recursive: true})
-    console.log({subDir})
     subDir.reverse() // metadata is the last item on subdir
     resolve(pickFile(subDir, fname)?.path ?? null)
-    // find.file(fname, config?.hasuraSource ?? '', result => {
-    //   if (result?.[0]) {
-    //     return resolve(result[0])
-    //   }
-
-    //   resolve(null)
-    // })
   })
 }
 
-let instrospectionCache: any = null
-const getInstrospection = async () => {
-  if (instrospectionCache !== null) return instrospectionCache
+let introspectionCache: any = null
+const getIntrospection = async () => {
+  if (introspectionCache !== null) return introspectionCache
   const config = await loadConfig()
   const apolloClient = createApolloClient(
     config?.graphqlUri ?? '',
@@ -96,7 +86,7 @@ const getInstrospection = async () => {
     `,
   })
 
-  instrospectionCache = data
+  introspectionCache = data
   return data
 }
 
@@ -108,14 +98,8 @@ export const parseGraphqlQuery = async (inputPath: string): Promise<Definition> 
     try {
       const scriptStr = queryParserTemplate.replace('__template__', inputPath)
       await writeFile({path: originalScriptPath, contents: scriptStr})
-      const npx = await new Command('run-npx', ['esbuild', originalScriptPath, '--bundle', '--target=chrome58', `--outfile=${scriptPath}`])
-      npx.stderr.on('data', line => console.log(`command stderr: "${line}"`))
-      npx.stdout.on('data', line => console.log(`command stdout: "${line}"`))
-      npx.on('error', error => console.error(`command error: "${error}"`))
-      npx.execute()
-      console.log({npx})
+      await new Command('run-npx', ['esbuild', originalScriptPath, '--bundle', '--target=chrome58', `--outfile=${scriptPath}`]).execute()
       const nodeOutput = await new Command('run-node', scriptPath).execute()
-      console.log({nodeOutput})
       resolve(JSON.parse(nodeOutput.stdout))
     } catch (error) {
       reject(error)
@@ -138,10 +122,12 @@ const findRelationByName = (
   return null
 }
 
+const loadQueryPackage = () => {}
+
 const getQueryContext = async (
   queryName: string
 ): Promise<'warehouse' | 'company' | null> => {
-  const instrospection = await getInstrospection()
+  const instrospection = await getIntrospection()
   const query = instrospection?.__schema?.types?.find(
     (item: any) => item.name === queryName
   )
@@ -210,15 +196,11 @@ export const addRoleToQuery = async (
   sourceFile: string,
   role: string
 ): Promise<TableDef[]> => {
-  console.log('test')
   const tables = await parseGraphqlQuery(sourceFile)
-  console.log({tables, sourceFile})
 
   const result: TableDef[] = []
   const walker = async (def: Definition, fname: string) => {
-    console.log({def, fname})
     const absFile = await findFile(`${fname}.yaml`)
-    console.log({absFile})
     const yamlText = await readTextFile(absFile!)
     const jsonDef = yaml.load(yamlText) as any
     const formattedName = jsonDef.table.schema + '_' + jsonDef.table.name
