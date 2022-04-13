@@ -69,26 +69,26 @@ const AddPermissionModal = (props: Props) => {
     setValue('roleName', selectedRoleProp ?? '')
   }, [selectedRoleProp])
 
-  useEffect(() => {
-    window.Main.on('save-permission-resolved', (args: any) => {
-      if (args.success) {
-        window.Main.sendMessage('fetch-raw')
-        toast({ status: 'success', description: 'Permission saved' })
-        reset({
-          roleName: usedRoleName.current,
-          allowAggregation: false,
-          context: '' as any,
-          tableName: '' as any,
-        })
-      } else {
-        toast({ status: 'error', description: 'Failed to save permission' })
-      }
-      setLoading(false)
-    })
-  }, [reset])
+  // useEffect(() => {
+  //   window.Main.on('save-permission-resolved', (args: any) => {
+  //     if (args.success) {
+  //       window.Main.sendMessage('fetch-raw')
+  //       toast({ status: 'success', description: 'Permission saved' })
+  //       reset({
+  //         roleName: usedRoleName.current,
+  //         allowAggregation: false,
+  //         context: '' as any,
+  //         tableName: '' as any,
+  //       })
+  //     } else {
+  //       toast({ status: 'error', description: 'Failed to save permission' })
+  //     }
+  //     setLoading(false)
+  //   })
+  // }, [reset])
 
   const onSubmit = handleSubmit(data => {
-    window.Main.sendMessage('save-permission', data)
+    // window.Main.sendMessage('save-permission', data)
   })
 
   return (

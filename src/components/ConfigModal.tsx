@@ -16,6 +16,8 @@ import {
   FormErrorMessage,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
+import { loadConfig } from '../utils/config'
+import { browseDirectory } from '../utils/service'
 
 type FormDataType = {
   secret: string
@@ -38,19 +40,22 @@ const ConfigModal = (props: ConfigModalProps) => {
 
   const onSubmit = handleSubmit(data => {
     setLoading(true)
-    window.Main.sendMessage('save-config', data)
+    // window.Main.sendMessage('save-config', data)
   })
+
+  const init = async () => {
+    try {
+      const config = await loadConfig()
+      setLoading(false)
+      setLoadedConfig(config)
+    } catch (err) {
+      console.error('init config modal failed:', err)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
-    window.Main.sendMessage('load-config')
-    window.Main.on('load-config-resolved', (result: any) => {
-      setLoading(false)
-      setLoadedConfig(result)
-    })
-    window.Main.on('browse-directory-resolved', (hasuraPath: any) => {
-      setValue('hasuraSource', hasuraPath)
-    })
+    init()
   }, [])
 
   useEffect(() => {
@@ -60,7 +65,9 @@ const ConfigModal = (props: ConfigModalProps) => {
   }, [loadedConfig])
 
   const handleBrowse = () => {
-    window.Main.sendMessage('browse-directory')
+    browseDirectory().then(filePath => {
+      setValue('hasuraSource', filePath)
+    })
   }
 
   return (

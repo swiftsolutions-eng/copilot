@@ -18,6 +18,9 @@ import { useForm, useWatch } from 'react-hook-form'
 import FormSelect from '../components/FormSelect'
 import { fetchRoles } from '../lib/apollo'
 import ConfigModal from '../components/ConfigModal'
+import { loadConfig } from '../utils/config'
+import { addRoleToQuery } from '../utils/parser'
+import { browseFile } from '../utils/service'
 
 type Config = {
   secret: string
@@ -31,7 +34,8 @@ type FormDataType = {
 
 const Launchpad = () => {
   const [filePath, setFilePath] = useState('')
-  const onDrop = useCallback(acceptedFiles => {
+  const onDrop = useCallback((acceptedFiles: any[]) => {
+    console.log({ acceptedFiles })
     const file = acceptedFiles[0]
     setFilePath(file.path)
   }, [])
@@ -55,13 +59,26 @@ const Launchpad = () => {
     return filePath.match(/\/([^/]+)\/?$/)?.[1]
   }, [filePath])
 
-  const handleSave = () => {
-    setLoading(true)
-    setResult([])
-    window.Main.sendMessage('add-role-to-query', {
-      sourceFile: filePath,
-      role: selectedRole,
-    })
+  const handleSave = async () => {
+    try {
+      setLoading(true)
+      setResult([])
+      const res = await addRoleToQuery(filePath, selectedRole)
+      setResult(res)
+    } catch (err) {
+      console.error('failed to add role:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const init = async () => {
+    try {
+      const config = await loadConfig()
+      setConfig({ value: config, isLoading: false })
+    } catch (err) {
+      console.error('init app failed:', err)
+    }
   }
 
   useEffect(() => {
@@ -79,30 +96,13 @@ const Launchpad = () => {
   }, [config.value])
 
   useEffect(() => {
-    window.Main.sendMessage('load-config')
-    window.Main.on('load-config-resolved', (result: any) => {
-      setConfig({
-        isLoading: false,
-        value: result,
-      })
-    })
-    window.Main.on('add-role-to-query-resolved', (res: any) => {
-      setResult(res)
-      setLoading(false)
-    })
-    window.Main.on('add-role-to-query-rejected', (error: any) => {
-      console.log(error)
-      setLoading(false)
-    })
-    window.Main.on('browse-file-reply', setFilePath)
+    init()
+    // window.Main.on('browse-file-reply', setFilePath)
   }, [])
 
   return (
     <Box
       {...getRootProps()}
-      onClick={e => {
-        e.preventDefault()
-      }}
       position="relative"
     >
       <ConfigModal isOpen={isOpen} onClose={onClose} />
@@ -120,7 +120,17 @@ const Launchpad = () => {
       </Box>
       <Container h="100vh" maxW="container.xl">
         <Stack h="100vh" py="4">
-          <Box flex={1} p="6" borderRadius="lg">
+          <Box
+            flex={1}
+            p="6"
+            borderRadius="lg"
+            onClick={e => {
+              e.preventDefault()
+              browseFile().then(filePath => {
+                setFilePath(filePath)
+              })
+            }}
+          >
             <Heading>Drag & Drop gql file</Heading>
             <Heading mt={4} size="sm">
               Selected File: {formattedPath}

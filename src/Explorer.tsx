@@ -39,16 +39,16 @@ const Explorer = () => {
   console.log(raw)
 
   useEffect(() => {
-    window.Main.on('is-ready', setReady)
+    // window.Main.on('is-ready', setReady)
   }, [])
 
   useEffect(() => {
     if (isAppReady) {
-      window.Main.sendMessage('fetch-raw')
+      // window.Main.sendMessage('fetch-raw')
 
-      window.Main.on('fetch-raw-resolved', (data: any) => {
-        setRaw(data)
-      })
+      // window.Main.on('fetch-raw-resolved', (data: any) => {
+      //   setRaw(data)
+      // })
     }
   }, [isAppReady])
 
@@ -69,7 +69,7 @@ const Explorer = () => {
             colorScheme="pink"
             size="lg"
             onClick={() => {
-              window.Main.sendMessage('choose-source')
+              // window.Main.sendMessage('choose-source')
             }}
           >
             Browse Metadata Source

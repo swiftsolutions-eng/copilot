@@ -41,25 +41,25 @@ const MergeRoleModal = (props: Props) => {
     to: string
   }>()
 
-  useEffect(() => {
-    window.Main.on('merge-role-resolved', (args: any) => {
-      if (args.success) {
-        window.Main.sendMessage('fetch-raw')
-        toast({ status: 'success', description: 'role merged' })
-        reset({
-          from: '',
-          to: '',
-        })
-      } else {
-        toast({ status: 'error', description: 'Failed merge role' })
-      }
-      setLoading(false)
-    })
-  }, [reset])
+  // useEffect(() => {
+  //   window.Main.on('merge-role-resolved', (args: any) => {
+  //     if (args.success) {
+  //       window.Main.sendMessage('fetch-raw')
+  //       toast({ status: 'success', description: 'role merged' })
+  //       reset({
+  //         from: '',
+  //         to: '',
+  //       })
+  //     } else {
+  //       toast({ status: 'error', description: 'Failed merge role' })
+  //     }
+  //     setLoading(false)
+  //   })
+  // }, [reset])
 
   const onSubmit = handleSubmit(data => {
     setLoading(true)
-    window.Main.sendMessage('merge-role', data)
+    // window.Main.sendMessage('merge-role', data)
   })
 
   return (

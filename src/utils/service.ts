@@ -1,9 +1,8 @@
-import fs from 'fs'
-import fsp from 'fs/promises'
-import path from 'path'
 import yamljs from 'yamljs'
 import prettier from 'prettier'
-import { dialog } from 'electron'
+import { open } from '@tauri-apps/api/dialog'
+import { join } from '@tauri-apps/api/path'
+import { readDir } from '@tauri-apps/api/fs'
 
 let SOURCE_FOLDER = ''
 
@@ -12,33 +11,29 @@ const AVAILABLE_ROLES = new Set()
 export const isReady = () => !!SOURCE_FOLDER
 
 export const browseFile = async () => {
-  const { filePaths } = await dialog.showOpenDialog({
-    properties: ['openFile'],
+  const location = await open({
+    directory: false,
   })
 
-  if (filePaths.length) {
-    return filePaths[0]
-  }
+  return Array.isArray(location) ? location[0] : location
 }
 
 export const browseDirectory = async () => {
-  const { filePaths } = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
+  const location = await open({
+    directory: true,
   })
 
-  if (filePaths.length) {
-    return filePaths[0]
-  }
+  return Array.isArray(location) ? location[0] : location
 }
 
 export const chooseSource = async () => {
   try {
-    const location = await dialog.showOpenDialog({
-      properties: ['openDirectory'],
+    const location = await open({
+      directory: true,
     })
 
     if (location) {
-      SOURCE_FOLDER = location.filePaths[0]
+      SOURCE_FOLDER = Array.isArray(location) ? location[0] : location
     }
 
     return true
@@ -47,22 +42,25 @@ export const chooseSource = async () => {
   }
 }
 
-export const getFiles = (): Promise<string[]> => {
-  return new Promise((resolve, reject) => {
-    fs.readdir(SOURCE_FOLDER, { encoding: 'utf-8' }, (err, files) => {
-      if (err) {
-        return reject(err)
-      }
+export const getFiles = async (): Promise<string[]> => {
+  const files = await readDir(SOURCE_FOLDER)
+  return files?.filter((file) => file.name !== 'tables.yaml')?.map((file) => file.name ?? '')
+  // return new Promise((resolve, reject) => {
+  //   fs.readdir(SOURCE_FOLDER, { encoding: 'utf-8' }, (err, files) => {
+  //     if (err) {
+  //       return reject(err)
+  //     }
 
-      return resolve(files?.filter(n => n !== 'tables.yaml'))
-    })
-  })
+  //     return resolve(files?.filter(n => n !== 'tables.yaml'))
+  //   })
+  // })
 }
 
 export const getTableMap = async () => {
   const files = await getFiles()
-  const result: Record<string, any> = files.reduce((acc, fname) => {
-    const parsedJson = yamljs.load(path.join(SOURCE_FOLDER, fname))
+  console.log('get table list', files)
+  const result: Record<string, any> = files.reduce(async (acc, fname) => {
+    const parsedJson = yamljs.load(await join(SOURCE_FOLDER, fname))
 
     parsedJson?.select_permissions?.forEach((p: any) => {
       AVAILABLE_ROLES.add(p.role)
@@ -202,13 +200,13 @@ export const addTableToPermission = async (payload: {
   const yamlString = yamljs.stringify(_target, Infinity, 2)
   const formattedYamlString = prettier.format(yamlString, { parser: 'yaml' })
 
-  await fsp.writeFile(
-    path.resolve(
-      SOURCE_FOLDER,
-      `${_target.table.schema}_${_target.table.name}.yaml`
-    ),
-    formattedYamlString
-  )
+  // await fsp.writeFile(
+  //   path.resolve(
+  //     SOURCE_FOLDER,
+  //     `${_target.table.schema}_${_target.table.name}.yaml`
+  //   ),
+  //   formattedYamlString
+  // )
 
   return { success: true, message: 'success' }
 }

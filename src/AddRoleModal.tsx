@@ -65,27 +65,27 @@ const AddRoleModal = (props: Props) => {
     shouldUnregister: true,
   })
 
-  useEffect(() => {
-    window.Main.on('add-role-resolved', (args: any) => {
-      if (
-        !args.map((arg: { success: boolean }) => arg.success).includes(false)
-      ) {
-        window.Main.sendMessage('fetch-raw')
-        toast({ status: 'success', description: 'Role created' })
-        reset({
-          role: '',
-          tables: [],
-        })
-      } else {
-        toast({ status: 'error', description: 'Failed creating role' })
-      }
-      setLoading(false)
-    })
-  }, [reset])
+  // useEffect(() => {
+  //   window.Main.on('add-role-resolved', (args: any) => {
+  //     if (
+  //       !args.map((arg: { success: boolean }) => arg.success).includes(false)
+  //     ) {
+  //       window.Main.sendMessage('fetch-raw')
+  //       toast({ status: 'success', description: 'Role created' })
+  //       reset({
+  //         role: '',
+  //         tables: [],
+  //       })
+  //     } else {
+  //       toast({ status: 'error', description: 'Failed creating role' })
+  //     }
+  //     setLoading(false)
+  //   })
+  // }, [reset])
 
   const onSubmit = handleSubmit(data => {
     setLoading(true)
-    window.Main.sendMessage('add-role', data)
+    // window.Main.sendMessage('add-role', data)
   })
 
   const onAddTable = () => {
