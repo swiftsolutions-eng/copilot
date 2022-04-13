@@ -1,62 +1,37 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Text,
-  Container,
-  Button,
   IconButton,
   Box,
   Heading,
   Stack,
   useDisclosure,
-  List,
-  ListItem,
-  Badge,
+  Divider,
+  HStack,
+  useToast,
 } from '@chakra-ui/react'
 import { SettingsIcon } from '@chakra-ui/icons'
 import { useForm, useWatch } from 'react-hook-form'
-import FormSelect from '../components/FormSelect'
-import { fetchRoles } from '../lib/apollo'
-import ConfigModal from '../components/ConfigModal'
-import { Config, loadConfig } from '../utils/config'
-import { addRoleToQuery } from '../utils/parser'
-import { browseFile } from '../utils/service'
 
-type FormDataType = {
-  role: string
-}
+import ConfigModal from '../components/ConfigModal'
+
+import { fetchRoles } from '../lib/apollo'
+
+import { Config, loadConfig } from '../utils/config'
+import { addRoleToQuery, loadCoreUIQueries } from '../utils/parser'
+import AssignRoleModal from '../components/AssignRoleModal'
 
 const Launchpad = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen: isConfigModalOpen, onOpen: onConfigModalOpen, onClose: onConfigModalClose } = useDisclosure()
+  const { isOpen: isAOpen, onOpen: onAOpen, onClose: onAClose } = useDisclosure()
 
   const [filePath, setFilePath] = useState('')
   const [config, setConfig] = useState<Config | null>()
   const [isLoading, setLoading] = useState(true)
-  const [result, setResult] = useState<any[]>([])
   const [roleList, setRoleList] = useState<any[]>([])
-  const [errors, setErrors] = useState<any>()
+  const [queryList, setQueryList] = useState<any[]>([])
 
-  const { control } = useForm<FormDataType>()
-
-  const selectedRole = useWatch({ control, name: 'role' })
-
-  const formattedPath = useMemo(() => {
-    if (!filePath) return ''
-
-    return filePath.match(/\/([^/]+)\/?$/)?.[1]
-  }, [filePath])
-
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      setResult([])
-      const res = await addRoleToQuery(filePath, selectedRole)
-      setResult(res)
-    } catch (err) {
-      setErrors('failed to add role: ' + JSON.stringify(err))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const toast = useToast()
 
   const initConfig = async () => {
     setLoading(true)
@@ -64,31 +39,63 @@ const Launchpad = () => {
       const config = await loadConfig()
       setConfig(config)
     } catch (err) {
-      setErrors('init app failed: ' + JSON.stringify(err))
+      toast({
+        title: 'Error',
+        description: 'failed to init config: ' + JSON.stringify(err),
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadRoles = async () => {
+    if (config == null) return
+    setLoading(true)
+    try {
+      const result = await fetchRoles(config?.graphqlUri, config?.secret)
+      setRoleList(result.map(item => ({ text: item.name, value: item.name })))
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'failed to load roles: ' + JSON.stringify(err),
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadUIQueries = async () => {
+    if (config == null) return
+    setLoading(true)
+    try {
+      const queries = await loadCoreUIQueries()
+      setQueryList(queries)
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'failed to load UI queries: ' + JSON.stringify(err),
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (!isLoading && config == null) onOpen()
+    if (!isLoading && config == null) onConfigModalOpen()
   }, [config, isLoading])
 
   useEffect(() => {
-    if (!isLoading && config == null) onOpen()
-    if (config != null) {
-      setLoading(true)
-      fetchRoles(config?.graphqlUri, config?.secret)
-        .then(result => {
-          setRoleList(result.map(item => ({ text: item.name, value: item.name })))
-        })
-        .catch((err) => {
-          setErrors('init app failed: ' + JSON.stringify(err))
-        })
-        .finally(() => {
-          setLoading(false)
-        })
-    }
+    loadRoles()
+    loadUIQueries()
   }, [config])
 
   useEffect(() => {
@@ -96,97 +103,59 @@ const Launchpad = () => {
   }, [])
 
   return (
-    <Box
-      // {...getRootProps()}
-      position="relative"
-    >
-      <ConfigModal isOpen={isOpen} onClose={onClose} />
-      <IconButton
-        // position="absolute"
-        // top="4"
-        // right="4"
-        colorScheme="blue"
-        aria-label="config"
-        onClick={onOpen}
-        icon={<SettingsIcon />}
+    <>
+      <ConfigModal isOpen={isConfigModalOpen} onClose={onConfigModalClose} />
+      <AssignRoleModal
+        isOpen={isAOpen}
+        onClose={() => {onAClose();setFilePath('')}}
+        roleList={roleList}
+        filePath={filePath}
       />
-      {/* <Box pointerEvents="none">
-        <input {...getInputProps()} />
-      </Box> */}
-      <Text>test{errors}</Text>
-      <Container h="100vh" maxW="container.xl">
-        <Stack h="100vh" py="4">
-          <Box
-            flex={1}
-            p="6"
-            borderRadius="lg"
-            onClick={e => {
-              e.preventDefault()
-              browseFile().then(filePath => {
-                setFilePath(filePath)
-              })
-            }}
-          >
-            <Heading>Drag & Drop gql file</Heading>
-            <Heading mt={4} size="sm">
-              Selected Fileee: {formattedPath}
+      <Box flex={1} color="black">
+        <Box h="100%" p="4">
+          <HStack justifyContent="space-between">
+            <Heading size="lg">
+              Queries
             </Heading>
-            {result.length > 0 ? (
-              <Box mt="4">
-                <Text fontSize="xl">
-                  <Text as="span" fontWeight="bold" color="pink.600">
-                    {selectedRole}
-                  </Text>{' '}
-                  successfully added to{' '}
-                  <Text as="span" fontWeight="bold" color="purple.600">
-                    {result.length}
-                  </Text>{' '}
-                  tables
-                </Text>
-                <List>
-                  {result.map(item => (
-                    <ListItem key={item.schema + '_' + item.name}>
-                      table{' '}
-                      <Badge colorScheme="pink">
-                        {item.schema + '_' + item.name}
-                      </Badge>{' '}
-                      with context{' '}
-                      <Badge colorScheme="purple">
-                        {item.context ?? 'No Context'}
-                      </Badge>
-                    </ListItem>
-                  ))}
-                </List>
-              </Box>
-            ) : null}
-          </Box>
-          <Stack
-            borderColor="gray.800"
-            borderWidth={1}
-            direction="row"
-            p="4"
-            borderRadius="lg"
-          >
-            <Box flex={1}>
-              <FormSelect
-                placeholder="Select Role"
-                control={control}
-                name="role"
-                options={roleList}
-              />
-            </Box>
-            <Button
+            <IconButton
               colorScheme="blue"
-              onClick={handleSave}
-              isLoading={isLoading}
-              isDisabled={!filePath || !selectedRole}
-            >
-              Save
-            </Button>
+              aria-label="config"
+              onClick={onConfigModalOpen}
+              icon={<SettingsIcon />}
+            />
+          </HStack>
+          <Stack
+            overflowY="scroll"
+            spacing={0}
+            divider={<Divider borderColor="gray.600" />}
+          >
+            {queryList.map((query) => (
+              <Box
+                onClick={() => {
+                  setFilePath(query.path)
+                  onAOpen()
+                }}
+                key={query.name}
+                cursor="pointer"
+                borderLeftWidth="4px"
+                borderStyle="solid"
+                color="blackAlpha.700"
+                borderLeftColor="transparent"
+                fontWeight="bold"
+                _hover={{
+                  color: 'blackAlpha.800',
+                  borderLeftColor: 'blackAlpha.800',
+                }}
+                px="4"
+                py="2"
+              >
+                <Text>{query.name}</Text>
+              </Box>
+            ))}
           </Stack>
-        </Stack>
-      </Container>
-    </Box>
+        </Box>
+      </Box>
+    </>
   )
 }
 

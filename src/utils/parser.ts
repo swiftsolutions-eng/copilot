@@ -5,7 +5,7 @@ import { gql } from '@apollo/client'
 import { loadConfig } from './config'
 import { createApolloClient } from './apolloClient'
 import { queryParserTemplate } from './template'
-import { readTextFile, writeFile, readDir, FileEntry } from '@tauri-apps/api/fs';
+import { readTextFile, writeFile, readDir, FileEntry } from '@tauri-apps/api/fs'
 import { join } from '@tauri-apps/api/path'
 import { tempdir } from '@tauri-apps/api/os'
 import { Command } from '@tauri-apps/api/shell'
