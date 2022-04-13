@@ -29,7 +29,7 @@ import {
   UseFormRegister,
 } from 'react-hook-form'
 import FormSelect from './components/FormSelect'
-import { FormInput } from './FormInput'
+import { FormInput } from './components/FormInput'
 
 interface Props extends Omit<ModalProps, 'children'> {
   raw: any
