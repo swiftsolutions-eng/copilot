@@ -1,61 +1,66 @@
 /* eslint-disable no-async-promise-executor */
-import yaml from 'js-yaml'
-import { sortBy } from 'lodash'
-import { gql } from '@apollo/client'
-import { loadConfig } from './config'
-import { createApolloClient } from './apolloClient'
-import { queryParserTemplate } from './template'
-import { readTextFile, writeFile, readDir, FileEntry } from '@tauri-apps/api/fs'
-import { join } from '@tauri-apps/api/path'
-import { tempdir } from '@tauri-apps/api/os'
-import { Command } from '@tauri-apps/api/shell'
+import yaml from "js-yaml";
+import { sortBy } from "lodash";
+import { gql } from "@apollo/client";
+import { loadConfig } from "./config";
+import { createApolloClient } from "./apolloClient";
+import { queryParserTemplate } from "./template";
+import {
+  readTextFile,
+  writeFile,
+  readDir,
+  FileEntry,
+} from "@tauri-apps/api/fs";
+import { join, homeDir } from "@tauri-apps/api/path";
+// import { tempdir } from "@tauri-apps/api/os";
+import { Command } from "@tauri-apps/api/shell";
 
 type Definition = {
-  name: string
-  relations: Definition[]
-}
+  name: string;
+  relations: Definition[];
+};
 
 type TableDef = {
-  name: string
-  schema: string
-  context: 'warehouse' | 'company' | null
-}
+  name: string;
+  schema: string;
+  context: "warehouse" | "company" | null;
+};
 
 const findFile = async (fname: string): Promise<string | null> => {
-  const config = await loadConfig()
+  const config = await loadConfig();
   const pickFile = (fileEntries: FileEntry[], fname: string) => {
-    let found: any
+    let found: any;
     for (const fileEntry of fileEntries) {
       if (fileEntry.name === fname) {
-        found = fileEntry
-        break
+        found = fileEntry;
+        break;
       }
       if ((fileEntry?.children ?? []).length > 0) {
-        const file = pickFile(fileEntry.children!, fname)
+        const file = pickFile(fileEntry.children!, fname);
         if (file?.name === fname) {
-          found = file
-          break
+          found = file;
+          break;
         }
       }
     }
-    return found
-  }
+    return found;
+  };
   return new Promise(async (resolve, reject) => {
-    if (config?.hasuraSource == null) reject(new Error('not found'))
-    const subDir = await readDir(config!.hasuraSource, {recursive: true})
-    subDir.reverse() // metadata is the last item on subdir
-    resolve(pickFile(subDir, fname)?.path ?? null)
-  })
-}
+    if (config?.hasuraSource == null) reject(new Error("not found"));
+    const subDir = await readDir(config!.hasuraSource, { recursive: true });
+    subDir.reverse(); // metadata is the last item on subdir
+    resolve(pickFile(subDir, fname)?.path ?? null);
+  });
+};
 
-let introspectionCache: any = null
+let introspectionCache: any = null;
 const getIntrospection = async () => {
-  if (introspectionCache !== null) return introspectionCache
-  const config = await loadConfig()
+  if (introspectionCache !== null) return introspectionCache;
+  const config = await loadConfig();
   const apolloClient = createApolloClient(
-    config?.graphqlUri ?? '',
-    config?.secret ?? ''
-  )
+    config?.graphqlUri ?? "",
+    config?.secret ?? ""
+  );
   const { data } = await apolloClient.query({
     query: gql`
       {
@@ -84,178 +89,195 @@ const getIntrospection = async () => {
         }
       }
     `,
-  })
+  });
 
-  introspectionCache = data
-  return data
-}
+  introspectionCache = data;
+  return data;
+};
 
-export const parseGraphqlQuery = async (inputPath: string): Promise<Definition> => {
-  const originalScriptPath = await join(await tempdir(), 'copilot-parser.ts')
-  const scriptPath = await join(await tempdir(), 'copilot-parser.js')
+export const parseGraphqlQuery = async (
+  inputPath: string
+): Promise<Definition> => {
+  const HOME_DIR = await homeDir();
+  const CONFIG_DIR = `${HOME_DIR}/.config/`;
+  const originalScriptPath = await join(CONFIG_DIR, "copilot-parser.ts");
+  const scriptPath = await join(CONFIG_DIR, "copilot-parser.js");
 
   return new Promise(async (resolve, reject) => {
     try {
-      const scriptStr = queryParserTemplate.replace('__template__', inputPath)
-      await writeFile({path: originalScriptPath, contents: scriptStr})
-      await new Command('run-npx', ['esbuild', originalScriptPath, '--bundle', '--target=chrome58', `--outfile=${scriptPath}`]).execute()
-      const nodeOutput = await new Command('run-node', scriptPath).execute()
-      resolve(JSON.parse(nodeOutput.stdout))
+      const scriptStr = queryParserTemplate.replace("__template__", inputPath);
+      await writeFile({ path: originalScriptPath, contents: scriptStr });
+      await new Command("run-npx", [
+        "esbuild",
+        originalScriptPath,
+        "--bundle",
+        "--target=chrome58",
+        `--outfile=${scriptPath}`,
+      ]).execute();
+      const nodeOutput = await new Command("run-node", scriptPath).execute();
+      resolve(JSON.parse(nodeOutput.stdout));
     } catch (error) {
-      reject(error)
+      reject(error);
     }
-  })
-}
+  });
+};
 
 const findRelationByName = (
   name: string,
   relations: any[]
 ): { schema: string; name: string } | null => {
-  const _found = relations?.find?.(n => n.name === name)
+  const _found = relations?.find?.((n) => n.name === name);
   if (_found) {
     return (
       _found?.using?.manual_configuration?.remote_table ??
       _found?.using?.foreign_key_constraint_on?.table
-    )
+    );
   }
 
-  return null
-}
+  return null;
+};
 
-export const loadCoreUIQueries = (): Promise<{name: string; path: string}[]> => {
-  const loadQueryFileName = (subDir: FileEntry[]): {name: string; path: string}[] => {
-    const fileNames = []
+export const loadCoreUIQueries = (): Promise<
+  { name: string; path: string }[]
+> => {
+  const loadQueryFileName = (
+    subDir: FileEntry[]
+  ): { name: string; path: string }[] => {
+    const fileNames = [];
     const getFileName = (file: FileEntry) => {
-      if (file.name == null) return null
-      if (file.name.length < 9) return null
-      if (!file.name.includes('.query.ts')) return null
-      return {name: file.name, path: file.path}
-    }
+      if (file.name == null) return null;
+      if (file.name.length < 9) return null;
+      if (!file.name.includes(".query.ts")) return null;
+      return { name: file.name, path: file.path };
+    };
     for (const dir of subDir) {
-      const fileName = getFileName(dir)
-      if (fileName) fileNames.push(fileName)
+      const fileName = getFileName(dir);
+      if (fileName) fileNames.push(fileName);
       if (dir.children != null && dir.children?.length > 0) {
-        const childrenFileNames = loadQueryFileName(dir.children)
-        if (childrenFileNames.length > 0) fileNames.push(...childrenFileNames)
+        const childrenFileNames = loadQueryFileName(dir.children);
+        if (childrenFileNames.length > 0) fileNames.push(...childrenFileNames);
       }
     }
-    return fileNames
-  }
+    return fileNames;
+  };
   return new Promise(async (resolve, reject) => {
     try {
-      const config = await loadConfig()
-      if (config == null) return null
-      const subDir = await readDir(config.coreUISource + '/packages/gqls/queries', {recursive: true})
-      const fileNames = loadQueryFileName(subDir)
-      resolve(fileNames)
+      const config = await loadConfig();
+      if (config == null) return null;
+      const subDir = await readDir(
+        config.coreUISource + "/packages/gqls/queries",
+        { recursive: true }
+      );
+      const fileNames = loadQueryFileName(subDir);
+      resolve(fileNames);
     } catch (err) {
-      reject(err)
+      reject(err);
     }
-  })
-}
+  });
+};
 
 const getQueryContext = async (
   queryName: string
-): Promise<'warehouse' | 'company' | null> => {
-  const instrospection = await getIntrospection()
+): Promise<"warehouse" | "company" | null> => {
+  const instrospection = await getIntrospection();
   const query = instrospection?.__schema?.types?.find(
     (item: any) => item.name === queryName
-  )
+  );
 
   const isHasWarehouse = query?.fields?.find(
-    (item: any) => item.name === 'warehouse_id'
-  )
+    (item: any) => item.name === "warehouse_id"
+  );
 
-  if (isHasWarehouse) return 'warehouse'
+  if (isHasWarehouse) return "warehouse";
 
   const isHasCompany = query?.fields?.find(
-    (item: any) => item.name === 'company_id'
-  )
+    (item: any) => item.name === "company_id"
+  );
 
-  if (isHasCompany) return 'company'
+  if (isHasCompany) return "company";
 
-  return null
-}
+  return null;
+};
 
 const addQueryPermission = async (
   jsonDef: any,
   fpath: string,
   role: string,
-  context: 'warehouse' | 'company' | null
+  context: "warehouse" | "company" | null
 ) => {
-  const _jsonDef = jsonDef
+  const _jsonDef = jsonDef;
   // remove current role
   _jsonDef.select_permissions =
     _jsonDef.select_permissions?.filter((item: any) => {
-      return item.role !== role
-    }) ?? []
+      return item.role !== role;
+    }) ?? [];
 
   // add new role
   _jsonDef.select_permissions.push({
     permission: {
       allow_aggregations: true,
-      columns: '*',
+      columns: "*",
       filter:
-        context === 'warehouse'
+        context === "warehouse"
           ? {
               warehouse_id: {
-                _eq: 'x-hasura-warehouse-id',
+                _eq: "x-hasura-warehouse-id",
               },
             }
-          : context === 'company'
+          : context === "company"
           ? {
               company_id: {
-                _eq: 'x-hasura-company-id',
+                _eq: "x-hasura-company-id",
               },
             }
           : {},
     },
     role,
-  })
-  _jsonDef.select_permissions = sortBy(_jsonDef.select_permissions, 'role')
+  });
+  _jsonDef.select_permissions = sortBy(_jsonDef.select_permissions, "role");
 
   const yamlString = yaml.dump(_jsonDef, {
     noArrayIndent: true,
     quotingType: '"',
-  })
+  });
 
-  await writeFile({path: fpath, contents: yamlString})
-}
+  await writeFile({ path: fpath, contents: yamlString });
+};
 
 export const addRoleToQuery = async (
   sourceFile: string,
   role: string
 ): Promise<TableDef[]> => {
-  const tables = await parseGraphqlQuery(sourceFile)
+  const tables = await parseGraphqlQuery(sourceFile);
 
-  const result: TableDef[] = []
+  const result: TableDef[] = [];
   const walker = async (def: Definition, fname: string) => {
-    const absFile = await findFile(`${fname}.yaml`)
-    const yamlText = await readTextFile(absFile!)
-    const jsonDef = yaml.load(yamlText) as any
-    const formattedName = jsonDef.table.schema + '_' + jsonDef.table.name
-    const context = await getQueryContext(formattedName)
-    await addQueryPermission(jsonDef, absFile!, role, context)
-    result.push({ ...jsonDef.table, context })
+    const absFile = await findFile(`${fname}.yaml`);
+    const yamlText = await readTextFile(absFile!);
+    const jsonDef = yaml.load(yamlText) as any;
+    const formattedName = jsonDef.table.schema + "_" + jsonDef.table.name;
+    const context = await getQueryContext(formattedName);
+    await addQueryPermission(jsonDef, absFile!, role, context);
+    result.push({ ...jsonDef.table, context });
 
-    const promises: any = def.relations.map(async rel => {
-      const objRel = findRelationByName(rel.name, jsonDef.object_relationships)
-      const arrRel = findRelationByName(rel.name, jsonDef.array_relationships)
+    const promises: any = def.relations.map(async (rel) => {
+      const objRel = findRelationByName(rel.name, jsonDef.object_relationships);
+      const arrRel = findRelationByName(rel.name, jsonDef.array_relationships);
 
       if (objRel) {
-        const _fname = objRel.schema + '_' + objRel.name
-        return await walker(rel, _fname)
+        const _fname = objRel.schema + "_" + objRel.name;
+        return await walker(rel, _fname);
       }
 
       if (arrRel) {
-        const _fname = arrRel.schema + '_' + arrRel.name
-        return await walker(rel, _fname)
+        const _fname = arrRel.schema + "_" + arrRel.name;
+        return await walker(rel, _fname);
       }
-    })
+    });
 
-    return await Promise.all(promises)
-  }
+    return await Promise.all(promises);
+  };
 
-  await walker(tables, tables.name)
-  return result
-}
+  await walker(tables, tables.name);
+  return result;
+};
