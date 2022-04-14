@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { useForm, useWatch } from "react-hook-form"
+import { useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import {
   Badge,
   Box,
@@ -15,66 +15,63 @@ import {
   ModalOverlay,
   ModalProps,
   Text,
-}
-from "@chakra-ui/react"
-import {useToast} from "@chakra-ui/react"
+  useToast,
+} from "@chakra-ui/react";
 
-import FormSelect from "./FormSelect"
+import FormSelect from "./FormSelect";
 
-import { addRoleToQuery } from "../utils/parser"
+import { addRoleToQuery } from "../utils/parser";
 
 type FormDataType = {
-  role: string
-}
+  role: string;
+};
 
-interface AssignRoleModalProps extends Omit<ModalProps, 'children'> {
-  filePath: string
-  roleList: { text: string; value: string }[]
+interface AssignRoleModalProps extends Omit<ModalProps, "children"> {
+  filePath: string;
+  roleList: { text: string; value: string }[];
 }
 
 const AssignRoleModal = (props: AssignRoleModalProps) => {
-  const {filePath, roleList} = props
+  const { filePath, roleList } = props;
 
-  const { control } = useForm<FormDataType>()
-  const selectedRole = useWatch({ control, name: 'role' })
+  const { control } = useForm<FormDataType>();
+  const selectedRole = useWatch({ control, name: "role" });
 
-  const toast = useToast()
+  const toast = useToast();
 
   const formattedPath = useMemo(() => {
-    if (!filePath) return ''
+    if (!filePath) return "";
 
-    return filePath.match(/\/([^/]+)\/?$/)?.[1]
-  }, [filePath])
+    return filePath.match(/\/([^/]+)\/?$/)?.[1];
+  }, [filePath]);
 
-  const [isLoading, setLoading] = useState(false)
-  const [result, setResult] = useState<any[]>([])
+  const [isLoading, setLoading] = useState(false);
+  const [result, setResult] = useState<any[]>([]);
 
   const handleSave = async () => {
     try {
-      setLoading(true)
-      setResult([])
-      const res = await addRoleToQuery(filePath, selectedRole)
-      setResult(res)
+      setLoading(true);
+      setResult([]);
+      const res = await addRoleToQuery(filePath, selectedRole);
+      setResult(res);
     } catch (err) {
       toast({
-        title: 'Error',
-        description: 'failed to add role: ' + JSON.stringify(err),
-        status: 'error',
+        title: "Error",
+        description: "failed to add role: " + JSON.stringify(err),
+        status: "error",
         duration: 3000,
         isClosable: true,
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Modal {...props} isCentered size="xl">
+    <Modal {...props} isCentered size="2xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>
-          Add Role to Query Tables
-        </ModalHeader>
+        <ModalHeader>Add Role to Query Tables</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <Box flex={1}>
@@ -86,31 +83,38 @@ const AssignRoleModal = (props: AssignRoleModalProps) => {
               options={roleList}
             />
           </Box>
-          <Text>
-            Selected File: {formattedPath}
+          <Text mt={2}>
+            Selected File:{" "}
+            <Text as="span" fontWeight="bold">
+              {formattedPath}
+            </Text>
           </Text>
           {result.length > 0 ? (
             <Box mt="4">
-              <Text fontSize="xl">
+              <Text fontSize="xl" mb={4}>
                 <Text as="span" fontWeight="bold" color="pink.600">
                   {selectedRole}
-                </Text>{' '}
-                successfully added to{' '}
+                </Text>{" "}
+                successfully added to{" "}
                 <Text as="span" fontWeight="bold" color="purple.600">
                   {result.length}
-                </Text>{' '}
+                </Text>{" "}
                 tables
               </Text>
               <List>
-                {result.map(item => (
-                  <ListItem key={item.schema + '_' + item.name}>
-                    table{' '}
-                    <Badge colorScheme="pink">
-                      {item.schema + '_' + item.name}
-                    </Badge>{' '}
-                    with context{' '}
+                {result.map((item) => (
+                  <ListItem key={item.schema + "_" + item.name}>
+                    table{" "}
+                    {item.schema ? (
+                      <Badge colorScheme="pink">
+                        {item.schema + "_" + item.name}
+                      </Badge>
+                    ) : (
+                      <Badge colorScheme="pink">{item.name}</Badge>
+                    )}{" "}
+                    with context{" "}
                     <Badge colorScheme="purple">
-                      {item.context ?? 'No Context'}
+                      {item.context ?? "No Context"}
                     </Badge>
                   </ListItem>
                 ))}
@@ -130,7 +134,7 @@ const AssignRoleModal = (props: AssignRoleModalProps) => {
         </ModalFooter>
       </ModalContent>
     </Modal>
-  )
-}
+  );
+};
 
-export default AssignRoleModal
+export default AssignRoleModal;

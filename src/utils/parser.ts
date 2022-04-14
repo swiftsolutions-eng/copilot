@@ -11,9 +11,15 @@ import {
   readDir,
   FileEntry,
 } from "@tauri-apps/api/fs";
-import { join, homeDir } from "@tauri-apps/api/path";
-// import { tempdir } from "@tauri-apps/api/os";
+import { join } from "@tauri-apps/api/path";
+import { tempdir } from "@tauri-apps/api/os";
 import { Command } from "@tauri-apps/api/shell";
+
+const YAML_CONFIG = {
+  noArrayIndent: true,
+  quotingType: '"',
+  lineWidth: -1,
+} as const;
 
 type Definition = {
   name: string;
@@ -98,10 +104,9 @@ const getIntrospection = async () => {
 export const parseGraphqlQuery = async (
   inputPath: string
 ): Promise<Definition> => {
-  const HOME_DIR = await homeDir();
-  const CONFIG_DIR = `${HOME_DIR}/.config/`;
-  const originalScriptPath = await join(CONFIG_DIR, "copilot-parser.ts");
-  const scriptPath = await join(CONFIG_DIR, "copilot-parser.js");
+  const TEMP_DIR = await tempdir();
+  const originalScriptPath = await join(TEMP_DIR, "copilot-parser.ts");
+  const scriptPath = await join(TEMP_DIR, "copilot-parser.js");
 
   return new Promise(async (resolve, reject) => {
     try {
@@ -140,36 +145,35 @@ const findRelationByName = (
 export const loadCoreUIQueries = (): Promise<
   { name: string; path: string }[]
 > => {
-  const loadQueryFileName = (
-    subDir: FileEntry[]
-  ): { name: string; path: string }[] => {
-    const fileNames = [];
-    const getFileName = (file: FileEntry) => {
-      if (file.name == null) return null;
-      if (file.name.length < 9) return null;
-      if (!file.name.includes(".query.ts")) return null;
-      return { name: file.name, path: file.path };
-    };
-    for (const dir of subDir) {
-      const fileName = getFileName(dir);
-      if (fileName) fileNames.push(fileName);
-      if (dir.children != null && dir.children?.length > 0) {
-        const childrenFileNames = loadQueryFileName(dir.children);
-        if (childrenFileNames.length > 0) fileNames.push(...childrenFileNames);
+  const results: { name: string; path: string }[] = [];
+  const walker = (files: FileEntry[]) => {
+    files.forEach((_file) => {
+      if (
+        _file.name?.endsWith("query.ts") ||
+        _file.name?.endsWith("mutation.ts")
+      ) {
+        results.push({
+          name: _file.name,
+          path: _file.path,
+        });
       }
-    }
-    return fileNames;
+
+      if ((_file.children?.length ?? 0) > 0) {
+        walker(_file.children!);
+      }
+    });
   };
+
   return new Promise(async (resolve, reject) => {
     try {
       const config = await loadConfig();
       if (config == null) return null;
-      const subDir = await readDir(
-        config.coreUISource + "/packages/gqls/queries",
-        { recursive: true }
-      );
-      const fileNames = loadQueryFileName(subDir);
-      resolve(fileNames);
+      const sourceFolder = await join(config.coreUISource, "/packages/gqls");
+      const subDir = await readDir(sourceFolder, {
+        recursive: true,
+      });
+      walker(subDir);
+      resolve(sortBy(results, (n) => n.name.toLowerCase()));
     } catch (err) {
       reject(err);
     }
@@ -236,12 +240,31 @@ const addQueryPermission = async (
   });
   _jsonDef.select_permissions = sortBy(_jsonDef.select_permissions, "role");
 
-  const yamlString = yaml.dump(_jsonDef, {
-    noArrayIndent: true,
-    quotingType: '"',
-  });
+  const yamlString = yaml.dump(_jsonDef, YAML_CONFIG);
 
   await writeFile({ path: fpath, contents: yamlString });
+};
+
+const addActionPermission = async (
+  result: TableDef[],
+  actionName: string,
+  role: string
+) => {
+  const actionsFile = await findFile("actions.yaml");
+  const yamlText = await readTextFile(actionsFile!);
+  const jsonDef = yaml.load(yamlText) as any;
+  const action = jsonDef.actions.find((item: any) => item.name === actionName);
+  if (action) {
+    action.permissions =
+      action.permissions?.filter((item: any) => item.role !== role) ?? [];
+    action.permissions.push({ role });
+    action.permissions = sortBy(action.permissions, "role");
+    result.push({ name: actionName, schema: "", context: null });
+  }
+
+  const yamlString = yaml.dump(jsonDef, YAML_CONFIG);
+
+  await writeFile({ path: actionsFile!, contents: yamlString });
 };
 
 export const addRoleToQuery = async (
@@ -251,31 +274,44 @@ export const addRoleToQuery = async (
   const tables = await parseGraphqlQuery(sourceFile);
 
   const result: TableDef[] = [];
-  const walker = async (def: Definition, fname: string) => {
+  const walker = async (def: Definition, fname: string): Promise<any> => {
     const absFile = await findFile(`${fname}.yaml`);
-    const yamlText = await readTextFile(absFile!);
-    const jsonDef = yaml.load(yamlText) as any;
-    const formattedName = jsonDef.table.schema + "_" + jsonDef.table.name;
-    const context = await getQueryContext(formattedName);
-    await addQueryPermission(jsonDef, absFile!, role, context);
-    result.push({ ...jsonDef.table, context });
+    if (absFile === null) {
+      return await Promise.all([
+        addActionPermission(result, fname, role),
+        ...def?.relations?.map((n: any) => walker(n, n.name)),
+      ]);
+    } else {
+      const yamlText = await readTextFile(absFile!);
+      const jsonDef = yaml.load(yamlText) as any;
+      const formattedName = jsonDef.table.schema + "_" + jsonDef.table.name;
+      const context = await getQueryContext(formattedName);
+      await addQueryPermission(jsonDef, absFile!, role, context);
+      result.push({ ...jsonDef.table, context });
 
-    const promises: any = def.relations.map(async (rel) => {
-      const objRel = findRelationByName(rel.name, jsonDef.object_relationships);
-      const arrRel = findRelationByName(rel.name, jsonDef.array_relationships);
+      const promises: any = def.relations.map(async (rel) => {
+        const objRel = findRelationByName(
+          rel.name,
+          jsonDef.object_relationships
+        );
+        const arrRel = findRelationByName(
+          rel.name,
+          jsonDef.array_relationships
+        );
 
-      if (objRel) {
-        const _fname = objRel.schema + "_" + objRel.name;
-        return await walker(rel, _fname);
-      }
+        if (objRel) {
+          const _fname = objRel.schema + "_" + objRel.name;
+          return await walker(rel, _fname);
+        }
 
-      if (arrRel) {
-        const _fname = arrRel.schema + "_" + arrRel.name;
-        return await walker(rel, _fname);
-      }
-    });
+        if (arrRel) {
+          const _fname = arrRel.schema + "_" + arrRel.name;
+          return await walker(rel, _fname);
+        }
+      });
 
-    return await Promise.all(promises);
+      return await Promise.all(promises);
+    }
   };
 
   await walker(tables, tables.name);
