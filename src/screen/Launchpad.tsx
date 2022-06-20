@@ -156,7 +156,7 @@ const Launchpad = () => {
             </HStack>
             <Box mt={3}>
               <Input
-                onChange={(e) => {
+                onChange={(e: any) => {
                   setKeyword(e.target.value);
                 }}
                 size="md"

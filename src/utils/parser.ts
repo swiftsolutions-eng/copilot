@@ -15,11 +15,7 @@ import { join } from "@tauri-apps/api/path";
 import { tempdir } from "@tauri-apps/api/os";
 import { Command } from "@tauri-apps/api/shell";
 
-const YAML_CONFIG = {
-  noArrayIndent: true,
-  quotingType: '"',
-  lineWidth: -1,
-} as const;
+const YAML_CONFIG = {} as const;
 
 type Definition = {
   name: string;
@@ -129,14 +125,30 @@ export const parseGraphqlQuery = async (
 
 const findRelationByName = (
   name: string,
-  relations: any[]
+  relations: any[],
+  parent?: string
 ): { schema: string; name: string } | null => {
   const _found = relations?.find?.((n) => n.name === name);
+
   if (_found) {
-    return (
-      _found?.using?.manual_configuration?.remote_table ??
-      _found?.using?.foreign_key_constraint_on?.table
-    );
+    if (_found?.using?.foreign_key_constraint_on?.table) {
+      return _found?.using?.foreign_key_constraint_on?.table;
+    }
+
+    if (_found?.using?.manual_configuration?.remote_table) {
+      return _found?.using?.manual_configuration?.remote_table;
+    }
+
+    if (_found?.definition?.to_source?.table) {
+      return _found?.definition?.to_source?.table;
+    }
+
+    if (parent && _found.name) {
+      return {
+        schema: parent,
+        name: _found.name,
+      };
+    }
   }
 
   return null;
@@ -287,16 +299,37 @@ export const addRoleToQuery = async (
       const formattedName = jsonDef.table.schema + "_" + jsonDef.table.name;
       const context = await getQueryContext(formattedName);
       await addQueryPermission(jsonDef, absFile!, role, context);
+
+      const _isExist = result.find(
+        (item) =>
+          item.schema === jsonDef.table.schema &&
+          item.name === jsonDef.table.name
+      );
+
+      if (_isExist) {
+        return;
+      }
+
       result.push({ ...jsonDef.table, context });
 
       const promises: any = def.relations.map(async (rel) => {
+        const parentName = jsonDef?.table?.schema;
         const objRel = findRelationByName(
           rel.name,
-          jsonDef.object_relationships
+          jsonDef.object_relationships,
+          parentName
         );
+
         const arrRel = findRelationByName(
           rel.name,
-          jsonDef.array_relationships
+          jsonDef.array_relationships,
+          parentName
+        );
+
+        const remoteRel = findRelationByName(
+          rel.name,
+          jsonDef.remote_relationships,
+          parentName
         );
 
         if (objRel) {
@@ -306,6 +339,11 @@ export const addRoleToQuery = async (
 
         if (arrRel) {
           const _fname = arrRel.schema + "_" + arrRel.name;
+          return await walker(rel, _fname);
+        }
+
+        if (remoteRel) {
+          const _fname = remoteRel.schema + "_" + remoteRel.name;
           return await walker(rel, _fname);
         }
       });
