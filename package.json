@@ -1,7 +1,7 @@
 {
   "name": "copilot",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
