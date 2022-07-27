@@ -230,6 +230,7 @@ const addQueryPermission = async (
 
   // add new role
   _jsonDef.select_permissions.push({
+    role,
     permission: {
       allow_aggregations: true,
       columns: "*",
@@ -248,7 +249,6 @@ const addQueryPermission = async (
             }
           : {},
     },
-    role,
   });
   _jsonDef.select_permissions = sortBy(_jsonDef.select_permissions, "role");
 
